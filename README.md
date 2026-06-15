@@ -1,6 +1,8 @@
 # cms-mcp
 
-MCP server for MacarenoNet CMS. Exposes read (public) and admin tools via stdio.
+MCP server for MacarenoNet CMS. Exposes read (public) and admin tools via stdio or HTTP/SSE.
+
+**Production endpoint:** `https://mcp.macareno.net/mcp`
 
 ## Tools
 
@@ -25,17 +27,54 @@ MCP server for MacarenoNet CMS. Exposes read (public) and admin tools via stdio.
 | `admin_list_subscribers` | List newsletter subscribers |
 | `admin_likes_stats` | Total likes + top articles |
 
-## Setup
+## Usage
+
+### 🌐 Remote HTTP/SSE (VS Code Copilot, Cursor, Continue, Cline)
+
+No installation needed — just point to the production endpoint:
+
+```json
+{
+  "mcpServers": {
+    "cms": {
+      "url": "https://mcp.macareno.net/mcp"
+    }
+  }
+}
+```
+
+Works out of the box for **all public tools**. Admin tools work automatically (credentials are server-side).
+
+### 🖥️ Local stdio (Claude Desktop, Cowork)
+
+Claude Desktop only supports local processes. Use `npx` — no cloning needed:
+
+```json
+{
+  "mcpServers": {
+    "cms": {
+      "command": "npx",
+      "args": ["github:MacarenoNET/cms-mcp"],
+      "env": {
+        "CMS_API_URL": "https://api.macareno.net",
+        "CMS_ADMIN_EMAIL": "admin@macareno.net",
+        "CMS_ADMIN_PASSWORD": "your-password"
+      }
+    }
+  }
+}
+```
+
+Or clone and run locally:
 
 ```bash
+git clone https://github.com/MacarenoNET/cms-mcp.git
 cd cms-mcp
 npm install
 npm run build
 ```
 
-## Claude Desktop / Cowork
-
-Add to `claude_desktop_config.json`:
+Then in `claude_desktop_config.json`:
 
 ```json
 {
@@ -53,22 +92,12 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
-## Cursor
+### 📋 Config file locations
 
-Add to `.cursor/mcp.json` in the workspace:
-
-```json
-{
-  "mcpServers": {
-    "cms": {
-      "command": "node",
-      "args": ["D:/CMS/cms-mcp/dist/index.js"],
-      "env": {
-        "CMS_API_URL": "https://api.macareno.net",
-        "CMS_ADMIN_EMAIL": "admin@macareno.net",
-        "CMS_ADMIN_PASSWORD": "your-password"
-      }
-    }
-  }
-}
-```
+| Client | File |
+|--------|------|
+| VS Code Copilot | `.vscode/mcp.json` |
+| Cursor | `.cursor/mcp.json` |
+| Cline | VS Code settings → `cline.mcpServers` |
+| Continue.dev | `~/.continue/config.json` |
+| Claude Desktop | `%APPDATA%\Claude\claude_desktop_config.json` |

@@ -2,9 +2,13 @@
   "name": "cms-mcp",
   "version": "1.0.0",
   "description": "MCP server for MacarenoNet CMS - read and admin tools",
-  "private": true,
   "type": "module",
-  "main": "dist/index.js",
+  "bin": {
+    "cms-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "build": "node node_modules/typescript/bin/tsc",
     "dev": "tsc --watch",
