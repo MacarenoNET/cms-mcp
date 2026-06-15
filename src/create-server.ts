@@ -216,5 +216,18 @@ export function createServer(): McpServer {
     },
   );
 
+  server.tool(
+    'admin_upload_image_base64',
+    'Admin: upload an image from base64 data (no local file needed — works from any AI client). Pass the full data URI (data:image/png;base64,iVBOR...) or raw base64. Returns the public URL to use as bgImageUrl.',
+    {
+      dataUri:  z.string().describe('Full data URI (e.g. "data:image/png;base64,iVBORw0KGgo...") or raw base64 string'),
+      filename: z.string().optional().describe('Optional filename with extension (e.g. "cover.png"). Defaults to "image.png".'),
+    },
+    async ({ dataUri, filename }) => {
+      try { return ok(await cms.uploadImageBase64(dataUri, filename)); }
+      catch (e) { return err(e); }
+    },
+  );
+
   return server;
 }

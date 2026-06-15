@@ -267,6 +267,30 @@ export async function uploadImage(filePath: string): Promise<{ id: number; key: 
   const mimeMap: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', svg: 'image/svg+xml' };
   const mimeType = mimeMap[ext] ?? 'application/octet-stream';
 
+  return uploadBuffer(buffer, filename, mimeType);
+}
+
+export async function uploadImageBase64(dataUriOrBase64: string, filename?: string): Promise<{ id: number; key: string; url: string }> {
+  // Accept both "data:image/png;base64,iVBOR..." and raw "iVBOR..."
+  let mimeType = 'image/png';
+  let base64 = dataUriOrBase64;
+  
+  const dataUriMatch = base64.match(/^data:([^;]+);base64,(.+)$/);
+  if (dataUriMatch) {
+    mimeType = dataUriMatch[1];
+    base64 = dataUriMatch[2];
+  }
+  
+  const buffer = Buffer.from(base64, 'base64');
+  if (!filename) {
+    const ext = mimeType.split('/').pop() ?? 'png';
+    filename = `image.${ext}`;
+  }
+  
+  return uploadBuffer(buffer, filename, mimeType);
+}
+
+async function uploadBuffer(buffer: Buffer, filename: string, mimeType: string): Promise<{ id: number; key: string; url: string }> {
   const res = await adminUploadMultipart('/admin/upload', 'file', buffer, filename, mimeType);
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { message?: string };
