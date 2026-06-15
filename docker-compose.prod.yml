@@ -1,3 +1,10 @@
+# ⚠️  Este archivo es solo referencia local.
+# En producción, el servicio cms-mcp está integrado en:
+#   cms-api/docker-compose.prod.yml
+#
+# Uso local (sin Traefik):
+#   docker compose -f docker-compose.prod.yml up -d
+
 services:
   cms-mcp:
     build:
@@ -5,20 +12,10 @@ services:
       dockerfile: Dockerfile
     container_name: cms-mcp-app
     restart: unless-stopped
+    ports:
+      - "3020:3020"
     environment:
       PORT: 3020
-      CMS_API_URL: http://cms-api-app:3010   # internal Docker network
+      CMS_API_URL: ${CMS_API_URL:-http://host.docker.internal:3010}
       CMS_ADMIN_EMAIL: ${CMS_ADMIN_EMAIL}
       CMS_ADMIN_PASSWORD: ${CMS_ADMIN_PASSWORD}
-    networks:
-      - cms-prod
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mcp.rule=Host(`${MCP_DOMAIN}`)"
-      - "traefik.http.routers.mcp.entrypoints=websecure"
-      - "traefik.http.routers.mcp.tls.certresolver=letsencrypt"
-      - "traefik.http.services.mcp.loadbalancer.server.port=3020"
-
-networks:
-  cms-prod:
-    external: true
