@@ -76,7 +76,10 @@ async function adminFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     const err = await res.json().catch(() => ({})) as { message?: string };
     throw new Error(err.message ?? `cms-api ${res.status}: ${res.statusText}`);
   }
-  return res.json() as Promise<T>;
+  // Handle empty responses (204, 304, etc.)
+  const text = await res.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 async function adminGet<T>(path: string, params?: Record<string, string>): Promise<T> {
