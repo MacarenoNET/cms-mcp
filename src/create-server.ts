@@ -206,7 +206,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_upload_image',
-    'Admin: upload an image file to the media bucket. Returns the public URL to use as bgImageUrl in article create/update.',
+    'Admin: upload an image file to the media bucket. Returns the public URL to use as bgImageUrl in article create/update. Requires local filesystem access.',
     {
       filePath: z.string().describe('Absolute path to the image file on disk (png, jpg, webp, etc.)'),
     },
@@ -218,13 +218,81 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_upload_image_base64',
-    'Admin: upload an image from base64 data (no local file needed — works from any AI client). Pass the full data URI (data:image/png;base64,iVBOR...) or raw base64. Returns the public URL to use as bgImageUrl.',
+    'Admin: upload an image from base64 data (no local file needed). Pass the full data URI (data:image/png;base64,iVBOR...) or raw base64. Max ~2 MB. Returns the public URL to use as bgImageUrl.',
     {
       dataUri:  z.string().describe('Full data URI (e.g. "data:image/png;base64,iVBORw0KGgo...") or raw base64 string'),
       filename: z.string().optional().describe('Optional filename with extension (e.g. "cover.png"). Defaults to "image.png".'),
     },
     async ({ dataUri, filename }) => {
       try { return ok(await cms.uploadImageBase64(dataUri, filename)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_upload_image_from_url',
+    'Admin: download an image from a public HTTPS URL and upload it to the media bucket. SSRF-safe — blocks localhost/private IPs. Returns the public URL to use as bgImageUrl.',
+    {
+      imageUrl: z.string().url().describe('HTTPS URL of the image to download (jpg, png, webp, gif)'),
+      filename: z.string().optional().describe('Optional filename. Defaults to extracted from URL.'),
+    },
+    async ({ imageUrl, filename }) => {
+      try { return ok(await cms.uploadImageFromUrl(imageUrl, filename)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  // ── Chunked upload (universal — works with any AI client, even JSON-only) ─
+
+  server.tool(
+    'admin_create_upload',
+    'Admin: start a new chunked upload session. Use this for large images or when your client cannot send local files. After creating, send chunks with admin_upload_chunk, then finish with admin_complete_upload.',
+    {
+      filename:    z.string().describe('Original filename (e.g. "cover.jpg")'),
+      contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif']).describe('MIME type of the file'),
+      totalBytes:  z.number().int().positive().describe('Total file size in bytes'),
+      sha256:      z.string().optional().describe('Optional expected SHA-256 hash for integrity check'),
+    },
+    async (args) => {
+      try { return ok(cms.adminCreateUpload(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_upload_chunk',
+    'Admin: send one base64-encoded chunk of an upload session created by admin_create_upload. Idempotent — resending the same chunk is safe.',
+    {
+      uploadId:    z.string().describe('Upload session ID from admin_create_upload'),
+      index:       z.number().int().min(0).describe('Chunk index (0-based)'),
+      base64Chunk: z.string().describe('Base64-encoded chunk data'),
+    },
+    async (args) => {
+      try { return ok(await cms.adminUploadChunk(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_complete_upload',
+    'Admin: finalize a chunked upload. Assembles all chunks, validates size, MIME type, uploads to the media bucket, and returns the public URL. Idempotent — safe to call multiple times.',
+    {
+      uploadId: z.string().describe('Upload session ID from admin_create_upload'),
+    },
+    async ({ uploadId }) => {
+      try { return ok(await cms.adminCompleteUpload({ uploadId })); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_abort_upload',
+    'Admin: cancel an incomplete chunked upload and free storage. Safe to call on already-completed or non-existent sessions.',
+    {
+      uploadId: z.string().describe('Upload session ID to cancel'),
+    },
+    async ({ uploadId }) => {
+      try { return ok(await cms.adminAbortUpload({ uploadId })); }
       catch (e) { return err(e); }
     },
   );

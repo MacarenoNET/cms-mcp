@@ -2,6 +2,7 @@
 
 import { readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
+import * as uploadSession from './upload-session.js';
 
 const BASE = (process.env.CMS_API_URL ?? '').replace(/\/$/, '');
 if (!BASE) throw new Error('Missing env: CMS_API_URL');
@@ -258,7 +259,97 @@ export function listAllCategories(locale?: string) {
   return adminGet<unknown[]>('/admin/categories', p);
 }
 
-// ── Upload ────────────────────────────────────────────────────────────────────
+// ── Upload — Chunked session (Phase 1: universal, works with any AI client) ───
+
+export function adminCreateUpload(params: {
+  filename: string;
+  contentType: string;
+  totalBytes: number;
+  sha256?: string;
+}) {
+  const err = uploadSession.validateCreateUpload(params.filename, params.contentType, params.totalBytes);
+  if (err) throw new Error(err);
+  
+  const session = uploadSession.createUploadSession(
+    params.filename,
+    params.contentType,
+    params.totalBytes,
+    params.sha256,
+  );
+  
+  return {
+    uploadId: session.uploadId,
+    chunkSize: session.chunkSize,
+    expiresAt: session.expiresAt.toISOString(),
+  };
+}
+
+export async function adminUploadChunk(params: {
+  uploadId: string;
+  index: number;
+  base64Chunk: string;
+}) {
+  return uploadSession.writeChunk(params.uploadId, params.index, params.base64Chunk);
+}
+
+export async function adminCompleteUpload(params: {
+  uploadId: string;
+}): Promise<{ url: string; key: string; filename: string; contentType: string; size: number }> {
+  const session = uploadSession.getSession(params.uploadId);
+  if (!session) throw new Error(`Upload session ${params.uploadId} not found or expired`);
+  if (session.status === 'completed' && session.finalUrl && session.finalKey) {
+    // Idempotent: already completed
+    return { url: session.finalUrl, key: session.finalKey, filename: session.sanitizedFilename, contentType: session.contentType, size: session.totalBytes };
+  }
+  
+  session.status = 'completing';
+  
+  // Assemble all chunks
+  const buffer = await uploadSession.assembleFile(params.uploadId);
+  
+  // Validate size
+  if (buffer.length !== session.totalBytes) {
+    await uploadSession.abortUpload(params.uploadId);
+    throw new Error(`Size mismatch: expected ${session.totalBytes}, got ${buffer.length}`);
+  }
+  
+  // Validate real MIME
+  const realMime = uploadSession.detectMimeType(buffer);
+  if (!realMime || realMime !== session.contentType) {
+    await uploadSession.abortUpload(params.uploadId);
+    throw new Error(`MIME mismatch: declared ${session.contentType}, detected ${realMime ?? 'unknown'}`);
+  }
+  
+  // Upload to CMS API
+  const res = await adminUploadMultipart('/admin/upload', 'file', buffer, session.sanitizedFilename, session.contentType);
+  if (!res.ok) {
+    session.status = 'failed';
+    const err = await res.json().catch(() => ({})) as { message?: string };
+    throw new Error(err.message ?? `cms-api upload failed: ${res.status}`);
+  }
+  const text = await res.text();
+  if (!text) throw new Error('Empty upload response');
+  const result = JSON.parse(text) as { id: number; key: string; url: string };
+  
+  // Cleanup
+  uploadSession.markCompleted(params.uploadId, result.url, result.key);
+  await uploadSession.cleanupSession(params.uploadId);
+  
+  return {
+    url: result.url,
+    key: result.key,
+    filename: session.sanitizedFilename,
+    contentType: session.contentType,
+    size: session.totalBytes,
+  };
+}
+
+export async function adminAbortUpload(params: { uploadId: string }) {
+  await uploadSession.abortUpload(params.uploadId);
+  return { uploadId: params.uploadId, status: 'aborted' };
+}
+
+// ── Upload — Direct (Phase 2: convenience methods) ────────────────────────────
 
 export async function uploadImage(filePath: string): Promise<{ id: number; key: string; url: string }> {
   const buffer = await readFile(filePath);
@@ -266,12 +357,10 @@ export async function uploadImage(filePath: string): Promise<{ id: number; key: 
   const ext = filename.split('.').pop()?.toLowerCase() ?? 'png';
   const mimeMap: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', svg: 'image/svg+xml' };
   const mimeType = mimeMap[ext] ?? 'application/octet-stream';
-
   return uploadBuffer(buffer, filename, mimeType);
 }
 
 export async function uploadImageBase64(dataUriOrBase64: string, filename?: string): Promise<{ id: number; key: string; url: string }> {
-  // Accept both "data:image/png;base64,iVBOR..." and raw "iVBOR..."
   let mimeType = 'image/png';
   let base64 = dataUriOrBase64;
   
@@ -282,12 +371,97 @@ export async function uploadImageBase64(dataUriOrBase64: string, filename?: stri
   }
   
   const buffer = Buffer.from(base64, 'base64');
+  if (buffer.length > uploadSession.UPLOAD_CONFIG.MAX_SINGLE_BASE64) {
+    throw new Error(`Base64 too large (${buffer.length} bytes). Max single upload: ${uploadSession.UPLOAD_CONFIG.MAX_SINGLE_BASE64}. Use chunked upload instead.`);
+  }
+  
+  if (!uploadSession.ALLOWED_IMAGE_TYPES.has(mimeType)) {
+    throw new Error(`Unsupported image type: ${mimeType}. Use chunked upload for other formats.`);
+  }
+  
   if (!filename) {
     const ext = mimeType.split('/').pop() ?? 'png';
     filename = `image.${ext}`;
   }
   
   return uploadBuffer(buffer, filename, mimeType);
+}
+
+export async function uploadImageFromUrl(imageUrl: string, filename?: string): Promise<{ id: number; key: string; url: string }> {
+  // SSRF protection: validate URL
+  let parsed: URL;
+  try { parsed = new URL(imageUrl); } catch { throw new Error('Invalid URL'); }
+  if (parsed.protocol !== 'https:') throw new Error('Only HTTPS URLs allowed');
+  
+  // Block private/loopback IPs via hostname check
+  const hostname = parsed.hostname.toLowerCase();
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname.startsWith('0.')) {
+    throw new Error('Blocked URL: localhost/loopback');
+  }
+  // Block IPv4 private ranges
+  const ipv4Match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (ipv4Match) {
+    const [, a, b] = ipv4Match.map(Number);
+    if (a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || a === 127) {
+      throw new Error('Blocked URL: private IP range');
+    }
+  }
+  
+  // Download with safety limits
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  
+  let response: Response;
+  try {
+    response = await fetch(imageUrl, {
+      redirect: 'manual',
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+  
+  // Handle redirects up to 3 hops
+  let hops = 0;
+  while ([301, 302, 303, 307, 308].includes(response.status) && hops < 3) {
+    const location = response.headers.get('location');
+    if (!location) throw new Error('Redirect without Location header');
+    const redirectUrl = new URL(location, imageUrl);
+    if (redirectUrl.protocol !== 'https:') throw new Error('Redirect to non-HTTPS URL blocked');
+    hops++;
+    try {
+      response = await fetch(redirectUrl.toString(), { signal: controller.signal });
+    } catch { throw new Error(`Download failed on redirect ${hops}`); }
+  }
+  
+  if (!response.ok) throw new Error(`Download failed: HTTP ${response.status}`);
+  
+  const contentType = response.headers.get('content-type')?.split(';')[0]?.trim() ?? 'application/octet-stream';
+  if (!uploadSession.ALLOWED_IMAGE_TYPES.has(contentType)) {
+    throw new Error(`Unsupported content type from URL: ${contentType}. Allowed: ${[...uploadSession.ALLOWED_IMAGE_TYPES].join(', ')}`);
+  }
+  
+  const contentLength = response.headers.get('content-length');
+  if (contentLength && Number(contentLength) > uploadSession.UPLOAD_CONFIG.MAX_FILE_SIZE) {
+    throw new Error(`Remote file too large: ${contentLength} bytes`);
+  }
+  
+  const arrayBuffer = await response.arrayBuffer();
+  if (arrayBuffer.byteLength > uploadSession.UPLOAD_CONFIG.MAX_FILE_SIZE) {
+    throw new Error(`Downloaded file too large: ${arrayBuffer.byteLength} bytes`);
+  }
+  
+  const buffer = Buffer.from(arrayBuffer);
+  const detectedMime = uploadSession.detectMimeType(buffer);
+  if (detectedMime && detectedMime !== contentType) {
+    throw new Error(`MIME mismatch from URL: declared ${contentType}, detected ${detectedMime}`);
+  }
+  
+  const finalFilename = filename
+    ? uploadSession.sanitizeFilename(filename)
+    : uploadSession.sanitizeFilename(parsed.pathname.split('/').pop() ?? 'image');
+  
+  return uploadBuffer(buffer, finalFilename, contentType);
 }
 
 async function uploadBuffer(buffer: Buffer, filename: string, mimeType: string): Promise<{ id: number; key: string; url: string }> {
