@@ -204,5 +204,17 @@ export function createServer(): McpServer {
     },
   );
 
+  server.tool(
+    'admin_upload_image',
+    'Admin: upload an image file to the media bucket. Returns the public URL to use as bgImageUrl in article create/update.',
+    {
+      filePath: z.string().describe('Absolute path to the image file on disk (png, jpg, webp, etc.)'),
+    },
+    async ({ filePath }) => {
+      try { return ok(await cms.uploadImage(filePath)); }
+      catch (e) { return err(e); }
+    },
+  );
+
   return server;
 }

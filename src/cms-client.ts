@@ -1,5 +1,8 @@
 // cms-client.ts — HTTP client for cms-api (public + admin)
 
+import { readFile } from 'node:fs/promises';
+import { basename } from 'node:path';
+
 const BASE = (process.env.CMS_API_URL ?? '').replace(/\/$/, '');
 if (!BASE) throw new Error('Missing env: CMS_API_URL');
 
@@ -97,6 +100,44 @@ async function adminPut<T>(path: string, body: unknown): Promise<T> {
 
 async function adminDelete(path: string): Promise<void> {
   await adminFetch(path, { method: 'DELETE' });
+}
+
+// ── Multipart upload (manual boundary — Node 22 fetch + FormData is buggy) ──
+
+async function adminUploadMultipart(
+  path: string,
+  fieldName: string,
+  fileBuffer: Buffer,
+  filename: string,
+  mimeType: string,
+): Promise<Response> {
+  const boundary = `----CmsMcp${Date.now()}`;
+  const header = Buffer.from(
+    `--${boundary}\r\nContent-Disposition: form-data; name="${fieldName}"; filename="${filename}"\r\nContent-Type: ${mimeType}\r\n\r\n`,
+  );
+  const footer = Buffer.from(`\r\n--${boundary}--\r\n`);
+  const body = Buffer.concat([header, fileBuffer, footer]);
+
+  const doFetch = async (token: string) =>
+    fetch(`${BASE}/api${path}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+      },
+      body,
+    });
+
+  let token = await ensureToken();
+  let res = await doFetch(token);
+
+  if (res.status === 401) {
+    _token = null;
+    token = await ensureToken();
+    res = await doFetch(token);
+  }
+
+  return res;
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -215,4 +256,23 @@ export function listAllCategories(locale?: string) {
   const p: Record<string, string> = {};
   if (locale) p.locale = locale;
   return adminGet<unknown[]>('/admin/categories', p);
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────────
+
+export async function uploadImage(filePath: string): Promise<{ id: number; key: string; url: string }> {
+  const buffer = await readFile(filePath);
+  const filename = basename(filePath);
+  const ext = filename.split('.').pop()?.toLowerCase() ?? 'png';
+  const mimeMap: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', svg: 'image/svg+xml' };
+  const mimeType = mimeMap[ext] ?? 'application/octet-stream';
+
+  const res = await adminUploadMultipart('/admin/upload', 'file', buffer, filename, mimeType);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { message?: string };
+    throw new Error(err.message ?? `cms-api ${res.status}: ${res.statusText}`);
+  }
+  const text = await res.text();
+  if (!text) throw new Error('Empty upload response');
+  return JSON.parse(text) as { id: number; key: string; url: string };
 }
