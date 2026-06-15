@@ -1,0 +1,24 @@
+services:
+  cms-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cms-mcp-app
+    restart: unless-stopped
+    environment:
+      PORT: 3020
+      CMS_API_URL: http://cms-api-app:3010   # internal Docker network
+      CMS_ADMIN_EMAIL: ${CMS_ADMIN_EMAIL}
+      CMS_ADMIN_PASSWORD: ${CMS_ADMIN_PASSWORD}
+    networks:
+      - cms-prod
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mcp.rule=Host(`${MCP_DOMAIN}`)"
+      - "traefik.http.routers.mcp.entrypoints=websecure"
+      - "traefik.http.routers.mcp.tls.certresolver=letsencrypt"
+      - "traefik.http.services.mcp.loadbalancer.server.port=3020"
+
+networks:
+  cms-prod:
+    external: true
