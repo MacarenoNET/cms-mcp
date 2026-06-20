@@ -492,3 +492,28 @@ export function generateImage(params: {
 export function deleteMedia(id: number): Promise<{ deleted: boolean }> {
   return adminFetch<{ deleted: boolean }>(`/admin/upload/${id}`, { method: 'DELETE' });
 }
+
+// ── Category admin ────────────────────────────────────────────────────────────
+
+export function createCategory(data: {
+  name: string;
+  slug: string;
+  locale: string;
+  description?: string;
+  icon?: string;
+}): Promise<unknown> {
+  return adminPost<unknown>('/admin/categories', data);
+}
+
+export function updateCategory(id: number, data: {
+  name?: string;
+  slug?: string;
+  description?: string;
+  icon?: string;
+}): Promise<unknown> {
+  return adminPut<unknown>(`/admin/categories/${id}`, data);
+}
+
+export function deleteCategory(id: number): Promise<void> {
+  return adminDelete(`/admin/categories/${id}`);
+}

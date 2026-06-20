@@ -333,5 +333,49 @@ export function createServer(): McpServer {
     },
   );
 
+  // ── CATEGORY ADMIN ───────────────────────────────────────────────────────────
+
+  server.tool(
+    'admin_create_category',
+    'Admin: create a new category. Use a Lucide icon name for the icon field (e.g. "Code", "ChartBar", "Palette", "Shield", "FileText", "Cloud").',
+    {
+      name:        z.string().describe('Display name'),
+      slug:        z.string().describe('URL slug (lowercase, hyphens)'),
+      locale:      z.enum(['es', 'pt', 'en']).describe('Language'),
+      description: z.string().optional().describe('Short description'),
+      icon:        z.string().optional().describe('Lucide icon name (e.g. "Code", "ChartBar")'),
+    },
+    async (args) => {
+      try { return ok(await cms.createCategory(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_update_category',
+    'Admin: update an existing category by numeric ID.',
+    {
+      id:          z.number().int().positive().describe('Category numeric ID'),
+      name:        z.string().optional(),
+      slug:        z.string().optional(),
+      description: z.string().optional(),
+      icon:        z.string().optional().describe('Lucide icon name'),
+    },
+    async ({ id, ...data }) => {
+      try { return ok(await cms.updateCategory(id, data)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_delete_category',
+    'Admin: permanently delete a category by numeric ID.',
+    { id: z.number().int().positive().describe('Category numeric ID') },
+    async ({ id }) => {
+      try { await cms.deleteCategory(id); return ok({ deleted: true, id }); }
+      catch (e) { return err(e); }
+    },
+  );
+
   return server;
 }
