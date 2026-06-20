@@ -218,7 +218,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_upload_image_base64',
-    'Admin: upload an image from base64 data (no local file needed). Pass the full data URI (data:image/png;base64,iVBOR...) or raw base64. Max ~2 MB. Returns the public URL to use as bgImageUrl.',
+    'Admin: upload an image from base64 data (no local file needed). Pass the full data URI (data:image/png;base64,iVBOR...) or raw base64. Max 5 MB — for larger files use the chunked upload flow (admin_create_upload). Returns the public URL to use as bgImageUrl.',
     {
       dataUri:  z.string().describe('Full data URI (e.g. "data:image/png;base64,iVBORw0KGgo...") or raw base64 string'),
       filename: z.string().optional().describe('Optional filename with extension (e.g. "cover.png"). Defaults to "image.png".'),
@@ -246,12 +246,21 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_create_upload',
-    'Admin: start a new chunked upload session. Use this for large images or when your client cannot send local files. After creating, send chunks with admin_upload_chunk, then finish with admin_complete_upload.',
+    [
+      'Admin: start a chunked upload session for images that exceed the 5 MB single-upload limit (max 10 MB).',
+      'Workflow: (1) call admin_create_upload → get uploadId and chunkSize (bytes).',
+      '(2) Split the binary image into chunks of exactly chunkSize bytes (last chunk may be smaller).',
+      '    Base64-encode each binary chunk independently and send with admin_upload_chunk.',
+      '    Because chunkSize (64512) is divisible by 3, you can also split a full-file base64 string',
+      '    at character positions that are multiples of (chunkSize / 3 * 4) = 86016.',
+      '(3) Call admin_complete_upload → returns the public image URL.',
+      'If anything goes wrong, call admin_abort_upload to free storage.',
+    ].join(' '),
     {
-      filename:    z.string().describe('Original filename (e.g. "cover.jpg")'),
-      contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif']).describe('MIME type of the file'),
-      totalBytes:  z.number().int().positive().describe('Total file size in bytes'),
-      sha256:      z.string().optional().describe('Optional expected SHA-256 hash for integrity check'),
+      filename:    z.string().describe('Original filename with extension (e.g. "cover.jpg")'),
+      contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']).describe('MIME type of the file'),
+      totalBytes:  z.number().int().positive().describe('Total file size in bytes (max 10 MB = 10485760)'),
+      sha256:      z.string().optional().describe('Optional expected SHA-256 hex hash for integrity verification'),
     },
     async (args) => {
       try { return ok(cms.adminCreateUpload(args)); }
@@ -261,11 +270,11 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_upload_chunk',
-    'Admin: send one base64-encoded chunk of an upload session created by admin_create_upload. Idempotent — resending the same chunk is safe.',
+    'Admin: send one base64-encoded chunk of an upload session created by admin_create_upload. Send chunkSize binary bytes per chunk (last chunk can be smaller). Max decoded size per call: 256 KB. Idempotent — resending the same chunk index is safe.',
     {
       uploadId:    z.string().describe('Upload session ID from admin_create_upload'),
       index:       z.number().int().min(0).describe('Chunk index (0-based)'),
-      base64Chunk: z.string().describe('Base64-encoded chunk data'),
+      base64Chunk: z.string().describe('Base64-encoded binary chunk. Decoded size must equal chunkSize bytes (or remaining bytes for the last chunk).'),
     },
     async (args) => {
       try { return ok(await cms.adminUploadChunk(args)); }

@@ -387,18 +387,13 @@ export async function uploadImageBase64(dataUriOrBase64: string, filename?: stri
   return uploadBuffer(buffer, filename, mimeType);
 }
 
-export async function uploadImageFromUrl(imageUrl: string, filename?: string): Promise<{ id: number; key: string; url: string }> {
-  // SSRF protection: validate URL
-  let parsed: URL;
-  try { parsed = new URL(imageUrl); } catch { throw new Error('Invalid URL'); }
-  if (parsed.protocol !== 'https:') throw new Error('Only HTTPS URLs allowed');
-  
-  // Block private/loopback IPs via hostname check
-  const hostname = parsed.hostname.toLowerCase();
+// SSRF check — throws if the URL targets a private/loopback address or non-HTTPS scheme
+function assertSafeUrl(url: URL): void {
+  if (url.protocol !== 'https:') throw new Error('Only HTTPS URLs allowed');
+  const hostname = url.hostname.toLowerCase();
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname.startsWith('0.')) {
     throw new Error('Blocked URL: localhost/loopback');
   }
-  // Block IPv4 private ranges
   const ipv4Match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
   if (ipv4Match) {
     const [, a, b] = ipv4Match.map(Number);
@@ -406,32 +401,42 @@ export async function uploadImageFromUrl(imageUrl: string, filename?: string): P
       throw new Error('Blocked URL: private IP range');
     }
   }
-  
-  // Download with safety limits
+}
+
+export async function uploadImageFromUrl(imageUrl: string, filename?: string): Promise<{ id: number; key: string; url: string }> {
+  // SSRF protection: validate initial URL
+  let parsed: URL;
+  try { parsed = new URL(imageUrl); } catch { throw new Error('Invalid URL'); }
+  assertSafeUrl(parsed);
+
+  // Download with safety limits — follow redirects manually so every hop is SSRF-checked
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30_000);
-  
+
+  let currentUrl = imageUrl;
   let response: Response;
+  let hops = 0;
+
   try {
-    response = await fetch(imageUrl, {
-      redirect: 'manual',
-      signal: controller.signal,
-    });
+    while (true) {
+      response = await fetch(currentUrl, {
+        redirect: 'manual',
+        signal: controller.signal,
+      });
+
+      if (![301, 302, 303, 307, 308].includes(response.status)) break;
+      if (hops >= 3) throw new Error('Too many redirects (max 3)');
+
+      const location = response.headers.get('location');
+      if (!location) throw new Error('Redirect without Location header');
+
+      const redirectUrl = new URL(location, currentUrl);
+      assertSafeUrl(redirectUrl); // SSRF check on every redirect target
+      currentUrl = redirectUrl.toString();
+      hops++;
+    }
   } finally {
     clearTimeout(timeout);
-  }
-  
-  // Handle redirects up to 3 hops
-  let hops = 0;
-  while ([301, 302, 303, 307, 308].includes(response.status) && hops < 3) {
-    const location = response.headers.get('location');
-    if (!location) throw new Error('Redirect without Location header');
-    const redirectUrl = new URL(location, imageUrl);
-    if (redirectUrl.protocol !== 'https:') throw new Error('Redirect to non-HTTPS URL blocked');
-    hops++;
-    try {
-      response = await fetch(redirectUrl.toString(), { signal: controller.signal });
-    } catch { throw new Error(`Download failed on redirect ${hops}`); }
   }
   
   if (!response.ok) throw new Error(`Download failed: HTTP ${response.status}`);

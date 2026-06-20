@@ -32,9 +32,9 @@ export interface UploadSession {
 // ── Config ────────────────────────────────────────────────────────────────────
 
 export const UPLOAD_CONFIG = {
-  MAX_FILE_SIZE: 15 * 1024 * 1024,        // 15 MB
-  MAX_SINGLE_BASE64: 2 * 1024 * 1024,     // 2 MB for single base64
-  DEFAULT_CHUNK_SIZE: 64 * 1024,           // 64 KB
+  MAX_FILE_SIZE: 10 * 1024 * 1024,        // 10 MB — matches cms-api MaxFileSizeValidator
+  MAX_SINGLE_BASE64: 5 * 1024 * 1024,     // 5 MB for single base64
+  DEFAULT_CHUNK_SIZE: 3 * 21504,           // 64512 bytes — divisible by 3 so base64 splits cleanly
   MAX_CHUNK_SIZE: 256 * 1024,              // 256 KB
   SESSION_TTL_MS: 60 * 60 * 1000,          // 1 hour
   CLEANUP_INTERVAL_MS: 15 * 60 * 1000,     // 15 min
@@ -46,6 +46,7 @@ export const ALLOWED_IMAGE_TYPES = new Set([
   'image/png',
   'image/webp',
   'image/gif',
+  'image/svg+xml',
 ]);
 
 // ── In-memory session store ────────────────────────────────────────────────────
@@ -88,15 +89,35 @@ const MAGIC_BYTES: [number[], string][] = [
   [[0xFF, 0xD8, 0xFF], 'image/jpeg'],
   [[0x89, 0x50, 0x4E, 0x47], 'image/png'],
   [[0x47, 0x49, 0x46, 0x38], 'image/gif'],
-  [[0x52, 0x49, 0x46, 0x46], 'image/webp'], // RIFF....WEBP — simplified check
+  // WebP: RIFF at bytes 0-3, then 4-byte file size, then WEBP at bytes 8-11
+  [[0x52, 0x49, 0x46, 0x46], 'image/webp'],
 ];
 
 export function detectMimeType(buffer: Buffer): string | null {
   for (const [magic, mime] of MAGIC_BYTES) {
-    if (buffer.length >= magic.length && magic.every((b, i) => buffer[i] === b)) {
-      return mime;
+    if (buffer.length < magic.length) continue;
+    if (!magic.every((b, i) => buffer[i] === b)) continue;
+
+    // WebP requires extra check: bytes 8-11 must be 'W','E','B','P'
+    if (mime === 'image/webp') {
+      if (
+        buffer.length < 12 ||
+        buffer[8]  !== 0x57 || // W
+        buffer[9]  !== 0x45 || // E
+        buffer[10] !== 0x42 || // B
+        buffer[11] !== 0x50    // P
+      ) continue;
     }
+
+    return mime;
   }
+
+  // SVG: text format — detect by XML/SVG opening tag
+  const textStart = buffer.toString('utf8', 0, Math.min(buffer.length, 512)).trimStart();
+  if (textStart.startsWith('<?xml') || textStart.startsWith('<svg')) {
+    return 'image/svg+xml';
+  }
+
   return null;
 }
 
@@ -195,16 +216,12 @@ export async function writeChunk(
   }
   
   const buffer = Buffer.from(base64Data, 'base64');
-  const expectedSize = (index === session.expectedChunks - 1)
-    ? session.totalBytes - (index * session.chunkSize)
-    : session.chunkSize;
-  
-  if (buffer.length !== expectedSize) {
-    throw new Error(`Chunk ${index} size mismatch: got ${buffer.length}, expected ${expectedSize}`);
+
+  if (buffer.length === 0) {
+    throw new Error(`Chunk ${index} is empty`);
   }
-  
   if (buffer.length > UPLOAD_CONFIG.MAX_CHUNK_SIZE) {
-    throw new Error(`Chunk ${index} too large: ${buffer.length} > ${UPLOAD_CONFIG.MAX_CHUNK_SIZE}`);
+    throw new Error(`Chunk ${index} too large: ${buffer.length} bytes (max ${UPLOAD_CONFIG.MAX_CHUNK_SIZE})`);
   }
   
   const chunkDir = await getChunkDir(uploadId);
