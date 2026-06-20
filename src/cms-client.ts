@@ -479,3 +479,16 @@ async function uploadBuffer(buffer: Buffer, filename: string, mimeType: string):
   if (!text) throw new Error('Empty upload response');
   return JSON.parse(text) as { id: number; key: string; url: string };
 }
+
+// ── Image generation ──────────────────────────────────────────────────────────
+
+export function generateImage(params: {
+  prompt: string;
+  aspectRatio?: '16:9' | '1:1' | '4:3';
+}): Promise<{ id: number; key: string; url: string }> {
+  return adminPost<{ id: number; key: string; url: string }>('/admin/generate-image', params);
+}
+
+export function deleteMedia(id: number): Promise<{ deleted: boolean }> {
+  return adminFetch<{ deleted: boolean }>(`/admin/upload/${id}`, { method: 'DELETE' });
+}
