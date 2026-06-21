@@ -1,6 +1,7 @@
 # .github/workflows/deploy.yml
 # CI/CD — Build, Push a GHCR, Deploy a VPS Hostinger
 # El docker-compose.prod.yml con el servicio cms-mcp está en el repo cms-api
+# test-trigger: 2026-06-21
 
 name: Deploy MCP
 
