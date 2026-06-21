@@ -59,9 +59,35 @@ jobs:
             set -e
             echo "🚀 Deploying cms-mcp..."
             cd /opt/macarenonet/cms-api
+
+            # Ensure override file exists (connects to shared Traefik, disables local Traefik)
+            cat > docker-compose.override.yml <<'EOF'
+            services:
+              traefik:
+                profiles:
+                  - disabled
+              postgres:
+                networks:
+                  - traefik-public
+              cms-api:
+                ports: []
+                networks:
+                  - traefik-public
+                labels:
+                  - traefik.docker.network=traefik-public
+              cms-mcp:
+                networks:
+                  - traefik-public
+                labels:
+                  - traefik.docker.network=traefik-public
+            networks:
+              traefik-public:
+                external: true
+            EOF
+
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-            docker compose -f docker-compose.prod.yml pull cms-mcp
-            docker compose -f docker-compose.prod.yml up -d --no-deps --remove-orphans cms-mcp
+            docker compose -f docker-compose.prod.yml -f docker-compose.override.yml pull cms-mcp
+            docker compose -f docker-compose.prod.yml -f docker-compose.override.yml up -d --no-deps --remove-orphans cms-mcp
             docker logout ghcr.io
             docker system prune -f --filter "until=24h"
             echo "✅ Deploy complete!"
