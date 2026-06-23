@@ -517,3 +517,43 @@ export function updateCategory(id: number, data: {
 export function deleteCategory(id: number): Promise<void> {
   return adminDelete(`/admin/categories/${id}`);
 }
+
+// ── Social Templates ─────────────────────────────────────────────────────────
+
+export function listSocialTemplates(activeOnly?: boolean): Promise<unknown[]> {
+  const p: Record<string, string> = {};
+  if (activeOnly !== undefined) p.active = String(activeOnly);
+  return adminGet<unknown[]>('/admin/social-templates', p);
+}
+
+export function getSocialTemplate(id: number): Promise<unknown> {
+  return adminGet<unknown>(`/admin/social-templates/${id}`);
+}
+
+export function createSocialTemplate(data: {
+  name: string;
+  platform: string;
+  htmlContent: string;
+  cssContent: string;
+  width: number;
+  height: number;
+  active?: boolean;
+}): Promise<unknown> {
+  return adminPost<unknown>('/admin/social-templates', data);
+}
+
+export function updateSocialTemplate(id: number, data: {
+  name?: string;
+  platform?: string;
+  htmlContent?: string;
+  cssContent?: string;
+  width?: number;
+  height?: number;
+  active?: boolean;
+}): Promise<unknown> {
+  return adminPut<unknown>(`/admin/social-templates/${id}`, data);
+}
+
+export function deleteSocialTemplate(id: number): Promise<void> {
+  return adminDelete(`/admin/social-templates/${id}`);
+}

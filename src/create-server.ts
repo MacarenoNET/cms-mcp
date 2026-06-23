@@ -377,5 +377,76 @@ export function createServer(): McpServer {
     },
   );
 
+  // ── Social Templates Tools ─────────────────────────────────────────────────
+
+  server.tool(
+    'admin_list_social_templates',
+    'Admin: list social media cover templates. Optionally filter to only active ones.',
+    {
+      activeOnly: z.boolean().optional().describe('If true, returns only active templates'),
+    },
+    async ({ activeOnly }) => {
+      try { return ok(await cms.listSocialTemplates(activeOnly)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_get_social_template',
+    'Admin: get a single social media template by numeric ID.',
+    { id: z.number().int().positive().describe('Template numeric ID') },
+    async ({ id }) => {
+      try { return ok(await cms.getSocialTemplate(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_create_social_template',
+    'Admin: create a new social media cover template. Platform values: instagram_square, instagram_portrait, instagram_story, facebook, twitter, linkedin, og. The htmlContent and cssContent can use {title}, {hook}, {author}, {category}, {date}, {readingTime}, {tags}, {bgImage}, {excerpt}, {siteName} placeholders.',
+    {
+      name:        z.string().describe('Template name (e.g. "OG Image Default")'),
+      platform:    z.enum(['instagram_square', 'instagram_portrait', 'instagram_story', 'facebook', 'twitter', 'linkedin', 'og']).describe('Target social platform'),
+      htmlContent: z.string().describe('HTML content with optional {placeholder} variables'),
+      cssContent:  z.string().describe('CSS styles for the template'),
+      width:       z.number().int().positive().describe('Canvas width in pixels'),
+      height:      z.number().int().positive().describe('Canvas height in pixels'),
+      active:      z.boolean().optional().describe('Set to true to activate the template'),
+    },
+    async (args) => {
+      try { return ok(await cms.createSocialTemplate(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_update_social_template',
+    'Admin: update an existing social media template by ID. Only provided fields are updated.',
+    {
+      id:          z.number().int().positive().describe('Template numeric ID'),
+      name:        z.string().optional(),
+      platform:    z.enum(['instagram_square', 'instagram_portrait', 'instagram_story', 'facebook', 'twitter', 'linkedin', 'og']).optional(),
+      htmlContent: z.string().optional(),
+      cssContent:  z.string().optional(),
+      width:       z.number().int().positive().optional(),
+      height:      z.number().int().positive().optional(),
+      active:      z.boolean().optional(),
+    },
+    async ({ id, ...data }) => {
+      try { return ok(await cms.updateSocialTemplate(id, data)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_delete_social_template',
+    'Admin: permanently delete a social media template by numeric ID.',
+    { id: z.number().int().positive().describe('Template numeric ID') },
+    async ({ id }) => {
+      try { await cms.deleteSocialTemplate(id); return ok({ deleted: true, id }); }
+      catch (e) { return err(e); }
+    },
+  );
+
   return server;
 }
