@@ -51,9 +51,10 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT || 22 }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          timeout: 2m
+          timeout: 3m
           command_timeout: 30m
           envs: GHCR_TOKEN,GITHUB_ACTOR,GEMINI_API_KEY,GEMINI_IMAGE_MODEL
           script: |
