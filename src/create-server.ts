@@ -309,8 +309,8 @@ export function createServer(): McpServer {
   // ── IMAGE GENERATION ─────────────────────────────────────────────────────────
 
   server.tool(
-    'admin_generate_image',
-    'Admin: generate an image with Gemini AI from a text prompt and upload it directly to the media bucket. Returns { id, key, url }. Use admin_delete_media to remove the image if it is rejected during an approval flow.',
+    'admin_image_generate',
+    'Admin: generate an image with Gemini AI from a text prompt and upload it directly to the media bucket. Returns { id, key, url }. Use admin_image_delete to remove the image if it is rejected during an approval flow.',
     {
       prompt: z.string().describe('Text description of the image to generate'),
       aspectRatio: z.enum(['16:9', '1:1', '4:3']).optional().describe('Desired aspect ratio (default: model decides)'),
@@ -322,10 +322,10 @@ export function createServer(): McpServer {
   );
 
   server.tool(
-    'admin_delete_media',
+    'admin_image_delete',
     'Admin: permanently delete a media record and its file from the storage bucket by media ID. Use this in image approval flows to remove generated images that were not approved, avoiding unused files in the bucket.',
     {
-      id: z.number().int().positive().describe('Media record ID (from admin_generate_image or admin_upload_image*)'),
+      id: z.number().int().positive().describe('Media record ID (from admin_image_generate or admin_upload_image*)'),
     },
     async ({ id }) => {
       try { return ok(await cms.deleteMedia(id)); }
