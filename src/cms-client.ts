@@ -152,12 +152,12 @@ export function listArticles(params: {
   q?: string;
 }) {
   const p: Record<string, string> = {};
-  if (params.locale)   p.locale   = params.locale;
-  if (params.page)     p.page     = String(params.page);
+  if (params.locale) p.locale = params.locale;
+  if (params.page) p.page = String(params.page);
   if (params.pageSize) p.pageSize = String(params.pageSize);
   if (params.category) p.category = params.category;
   if (params.featured !== undefined) p.featured = String(params.featured);
-  if (params.q)        p.q        = params.q;
+  if (params.q) p.q = params.q;
   return publicGet<{ articles: unknown[]; total: number; pageCount: number }>('/articles', p);
 }
 
@@ -181,13 +181,13 @@ export function listAllArticles(params: {
   pageSize?: number;
 }) {
   const p: Record<string, string> = {};
-  if (params.locale)     p.locale     = params.locale;
-  if (params.status)     p.status     = params.status;
-  if (params.search)     p.search     = params.search;
-  if (params.category)   p.category   = params.category;
+  if (params.locale) p.locale = params.locale;
+  if (params.status) p.status = params.status;
+  if (params.search) p.search = params.search;
+  if (params.category) p.category = params.category;
   if (params.documentId) p.documentId = params.documentId;
-  if (params.page)       p.page       = String(params.page);
-  if (params.pageSize)   p.pageSize   = String(params.pageSize);
+  if (params.page) p.page = String(params.page);
+  if (params.pageSize) p.pageSize = String(params.pageSize);
   return adminGet<{ articles: unknown[]; total: number; pageCount: number }>('/admin/articles', p);
 }
 
@@ -243,8 +243,8 @@ export function listAuthors() {
 
 export function listSubscribers(params: { search?: string; page?: number; pageSize?: number }) {
   const p: Record<string, string> = {};
-  if (params.search)   p.search   = params.search;
-  if (params.page)     p.page     = String(params.page);
+  if (params.search) p.search = params.search;
+  if (params.page) p.page = String(params.page);
   if (params.pageSize) p.pageSize = String(params.pageSize);
   return adminGet<{ subscribers: unknown[]; total: number; pageCount: number }>('/admin/subscribers', p);
 }
@@ -269,14 +269,14 @@ export function adminCreateUpload(params: {
 }) {
   const err = uploadSession.validateCreateUpload(params.filename, params.contentType, params.totalBytes);
   if (err) throw new Error(err);
-  
+
   const session = uploadSession.createUploadSession(
     params.filename,
     params.contentType,
     params.totalBytes,
     params.sha256,
   );
-  
+
   return {
     uploadId: session.uploadId,
     chunkSize: session.chunkSize,
@@ -301,25 +301,25 @@ export async function adminCompleteUpload(params: {
     // Idempotent: already completed
     return { url: session.finalUrl, key: session.finalKey, filename: session.sanitizedFilename, contentType: session.contentType, size: session.totalBytes };
   }
-  
+
   session.status = 'completing';
-  
+
   // Assemble all chunks
   const buffer = await uploadSession.assembleFile(params.uploadId);
-  
+
   // Validate size
   if (buffer.length !== session.totalBytes) {
     await uploadSession.abortUpload(params.uploadId);
     throw new Error(`Size mismatch: expected ${session.totalBytes}, got ${buffer.length}`);
   }
-  
+
   // Validate real MIME
   const realMime = uploadSession.detectMimeType(buffer);
   if (!realMime || realMime !== session.contentType) {
     await uploadSession.abortUpload(params.uploadId);
     throw new Error(`MIME mismatch: declared ${session.contentType}, detected ${realMime ?? 'unknown'}`);
   }
-  
+
   // Upload to CMS API
   const res = await adminUploadMultipart('/admin/upload', 'file', buffer, session.sanitizedFilename, session.contentType);
   if (!res.ok) {
@@ -330,11 +330,11 @@ export async function adminCompleteUpload(params: {
   const text = await res.text();
   if (!text) throw new Error('Empty upload response');
   const result = JSON.parse(text) as { id: number; key: string; url: string };
-  
+
   // Cleanup
   uploadSession.markCompleted(params.uploadId, result.url, result.key);
   await uploadSession.cleanupSession(params.uploadId);
-  
+
   return {
     url: result.url,
     key: result.key,
@@ -363,27 +363,27 @@ export async function uploadImage(filePath: string): Promise<{ id: number; key: 
 export async function uploadImageBase64(dataUriOrBase64: string, filename?: string): Promise<{ id: number; key: string; url: string }> {
   let mimeType = 'image/png';
   let base64 = dataUriOrBase64;
-  
+
   const dataUriMatch = base64.match(/^data:([^;]+);base64,(.+)$/);
   if (dataUriMatch) {
     mimeType = dataUriMatch[1];
     base64 = dataUriMatch[2];
   }
-  
+
   const buffer = Buffer.from(base64, 'base64');
   if (buffer.length > uploadSession.UPLOAD_CONFIG.MAX_SINGLE_BASE64) {
     throw new Error(`Base64 too large (${buffer.length} bytes). Max single upload: ${uploadSession.UPLOAD_CONFIG.MAX_SINGLE_BASE64}. Use chunked upload instead.`);
   }
-  
+
   if (!uploadSession.ALLOWED_IMAGE_TYPES.has(mimeType)) {
     throw new Error(`Unsupported image type: ${mimeType}. Use chunked upload for other formats.`);
   }
-  
+
   if (!filename) {
     const ext = mimeType.split('/').pop() ?? 'png';
     filename = `image.${ext}`;
   }
-  
+
   return uploadBuffer(buffer, filename, mimeType);
 }
 
@@ -438,34 +438,34 @@ export async function uploadImageFromUrl(imageUrl: string, filename?: string): P
   } finally {
     clearTimeout(timeout);
   }
-  
+
   if (!response.ok) throw new Error(`Download failed: HTTP ${response.status}`);
-  
+
   const contentType = response.headers.get('content-type')?.split(';')[0]?.trim() ?? 'application/octet-stream';
   if (!uploadSession.ALLOWED_IMAGE_TYPES.has(contentType)) {
     throw new Error(`Unsupported content type from URL: ${contentType}. Allowed: ${[...uploadSession.ALLOWED_IMAGE_TYPES].join(', ')}`);
   }
-  
+
   const contentLength = response.headers.get('content-length');
   if (contentLength && Number(contentLength) > uploadSession.UPLOAD_CONFIG.MAX_FILE_SIZE) {
     throw new Error(`Remote file too large: ${contentLength} bytes`);
   }
-  
+
   const arrayBuffer = await response.arrayBuffer();
   if (arrayBuffer.byteLength > uploadSession.UPLOAD_CONFIG.MAX_FILE_SIZE) {
     throw new Error(`Downloaded file too large: ${arrayBuffer.byteLength} bytes`);
   }
-  
+
   const buffer = Buffer.from(arrayBuffer);
   const detectedMime = uploadSession.detectMimeType(buffer);
   if (detectedMime && detectedMime !== contentType) {
     throw new Error(`MIME mismatch from URL: declared ${contentType}, detected ${detectedMime}`);
   }
-  
+
   const finalFilename = filename
     ? uploadSession.sanitizeFilename(filename)
     : uploadSession.sanitizeFilename(parsed.pathname.split('/').pop() ?? 'image');
-  
+
   return uploadBuffer(buffer, finalFilename, contentType);
 }
 
