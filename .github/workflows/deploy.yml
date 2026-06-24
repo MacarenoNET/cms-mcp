@@ -51,15 +51,26 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           timeout: 2m
           command_timeout: 30m
-          envs: GHCR_TOKEN,GITHUB_ACTOR
+          envs: GHCR_TOKEN,GITHUB_ACTOR,GEMINI_API_KEY,GEMINI_IMAGE_MODEL
           script: |
             set -e
             echo "🚀 Deploying cms-mcp..."
             cd /opt/macarenonet/cms-api
+
+            # Ensure GEMINI vars in .env (for cms-api image generation)
+            if ! grep -q '^GEMINI_API_KEY=' .env 2>/dev/null; then
+              echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
+              echo "✅ GEMINI_API_KEY added to .env"
+            fi
+            if ! grep -q '^GEMINI_IMAGE_MODEL=' .env 2>/dev/null; then
+              echo "GEMINI_IMAGE_MODEL=$GEMINI_IMAGE_MODEL" >> .env
+              echo "✅ GEMINI_IMAGE_MODEL added to .env"
+            fi
 
             # Ensure override file exists (connects to shared Traefik, disables local Traefik)
             cat > docker-compose.override.yml <<'EOF'
@@ -95,3 +106,5 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_IMAGE_MODEL: ${{ secrets.GEMINI_IMAGE_MODEL }}
