@@ -298,3 +298,34 @@ export function deleteTemplate(id: number): Promise<void> {
 export function composeCover(articleId: number, templateId: number): Promise<{ id: number; key: string; url: string }> {
   return adminPost<{ id: number; key: string; url: string }>('/admin/compose-cover', { articleId, templateId });
 }
+
+// ── Analytics ────────────────────────────────────────────────────────────────
+
+export function getAnalyticsDashboard(start?: string, end?: string) {
+  const p: Record<string, string> = {};
+  if (start) p.start = start;
+  if (end) p.end = end;
+  return adminGet<{ dashboard: unknown }>('/admin/analytics/dashboard', p);
+}
+
+export function getAnalyticsTrending(limit = 10) {
+  return adminGet<{ articles: unknown[] }>('/admin/analytics/trending', { limit: String(limit) });
+}
+
+export function getAnalyticsSources(start?: string, end?: string) {
+  const p: Record<string, string> = {};
+  if (start) p.start = start;
+  if (end) p.end = end;
+  return adminGet<{ sources: unknown[] }>('/admin/analytics/sources', p);
+}
+
+export function getAnalyticsAudience(start?: string, end?: string) {
+  const p: Record<string, string> = {};
+  if (start) p.start = start;
+  if (end) p.end = end;
+  return adminGet<{ devices: unknown[]; countries: unknown[] }>('/admin/analytics/audience', p);
+}
+
+export function getArticleAnalytics(articlePath: string, start?: string, end?: string) {
+  return adminPost<{ stats: unknown }>('/admin/analytics/article-stats', { path: articlePath, start, end });
+}

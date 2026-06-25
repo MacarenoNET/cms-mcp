@@ -359,5 +359,72 @@ export function createServer(): McpServer {
     },
   );
 
+  // ── Analytics ───────────────────────────────────────────────────────────────
+
+  server.tool(
+    'admin_analytics_dashboard',
+    'Admin: get GA4 dashboard KPIs (active users, page views, sessions, bounce rate, engagement rate). Returns null if GA4 is not configured.',
+    {
+      start: z.string().optional().describe('Start date (default: 7daysAgo)'),
+      end: z.string().optional().describe('End date (default: yesterday)'),
+    },
+    async (args) => {
+      try { return ok(await cms.getAnalyticsDashboard(args.start, args.end)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_analytics_trending',
+    'Admin: get top articles by page views from GA4 (last 7 days). Returns empty array if GA4 is not configured.',
+    {
+      limit: z.number().int().positive().optional().describe('Max results (default: 10)'),
+    },
+    async ({ limit }) => {
+      try { return ok(await cms.getAnalyticsTrending(limit)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_analytics_sources',
+    'Admin: get traffic sources breakdown from GA4 (source, medium, sessions, views).',
+    {
+      start: z.string().optional(),
+      end: z.string().optional(),
+    },
+    async (args) => {
+      try { return ok(await cms.getAnalyticsSources(args.start, args.end)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_analytics_audience',
+    'Admin: get audience breakdown by device category and country from GA4.',
+    {
+      start: z.string().optional(),
+      end: z.string().optional(),
+    },
+    async (args) => {
+      try { return ok(await cms.getAnalyticsAudience(args.start, args.end)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_analytics_article_stats',
+    'Admin: get detailed GA4 stats for a single article (views over time, sources, totals). Provide the article path like "/article/my-article-slug".',
+    {
+      path: z.string().describe('Article path, e.g. "/article/my-slug"'),
+      start: z.string().optional(),
+      end: z.string().optional(),
+    },
+    async (args) => {
+      try { return ok(await cms.getArticleAnalytics(args.path, args.start, args.end)); }
+      catch (e) { return err(e); }
+    },
+  );
+
   return server;
 }
