@@ -60,8 +60,7 @@ jobs:
           script: |
             set -e
             echo "🚀 Deploying cms-mcp..."
-            cd /opt/macarenonet/cms-api
-
+cd /docker/cms
             # Ensure GEMINI vars in .env (for cms-api image generation)
             if ! grep -q '^GEMINI_API_KEY=' .env 2>/dev/null; then
               echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
