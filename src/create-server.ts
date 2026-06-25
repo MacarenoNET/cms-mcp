@@ -204,108 +204,6 @@ export function createServer(): McpServer {
     },
   );
 
-  server.tool(
-    'admin_upload_image',
-    'Admin: upload an image file to the media bucket. Returns the public URL to use as bgImageUrl in article create/update. Requires local filesystem access.',
-    {
-      filePath: z.string().describe('Absolute path to the image file on disk (png, jpg, webp, etc.)'),
-    },
-    async ({ filePath }) => {
-      try { return ok(await cms.uploadImage(filePath)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_upload_image_base64',
-    'Admin: upload an image from base64 data (no local file needed). Pass the full data URI (data:image/png;base64,iVBOR...) or raw base64. Max 5 MB — for larger files use the chunked upload flow (admin_create_upload). Returns the public URL to use as bgImageUrl.',
-    {
-      dataUri: z.string().describe('Full data URI (e.g. "data:image/png;base64,iVBORw0KGgo...") or raw base64 string'),
-      filename: z.string().optional().describe('Optional filename with extension (e.g. "cover.png"). Defaults to "image.png".'),
-    },
-    async ({ dataUri, filename }) => {
-      try { return ok(await cms.uploadImageBase64(dataUri, filename)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_upload_image_from_url',
-    'Admin: download an image from a public HTTPS URL and upload it to the media bucket. SSRF-safe — blocks localhost/private IPs. Returns the public URL to use as bgImageUrl.',
-    {
-      imageUrl: z.string().url().describe('HTTPS URL of the image to download (jpg, png, webp, gif)'),
-      filename: z.string().optional().describe('Optional filename. Defaults to extracted from URL.'),
-    },
-    async ({ imageUrl, filename }) => {
-      try { return ok(await cms.uploadImageFromUrl(imageUrl, filename)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  // ── Chunked upload (universal — works with any AI client, even JSON-only) ─
-
-  server.tool(
-    'admin_create_upload',
-    [
-      'Admin: start a chunked upload session for images that exceed the 5 MB single-upload limit (max 10 MB).',
-      'Workflow: (1) call admin_create_upload → get uploadId and chunkSize (bytes).',
-      '(2) Split the binary image into chunks of exactly chunkSize bytes (last chunk may be smaller).',
-      '    Base64-encode each binary chunk independently and send with admin_upload_chunk.',
-      '    Because chunkSize (64512) is divisible by 3, you can also split a full-file base64 string',
-      '    at character positions that are multiples of (chunkSize / 3 * 4) = 86016.',
-      '(3) Call admin_complete_upload → returns the public image URL.',
-      'If anything goes wrong, call admin_abort_upload to free storage.',
-    ].join(' '),
-    {
-      filename: z.string().describe('Original filename with extension (e.g. "cover.jpg")'),
-      contentType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']).describe('MIME type of the file'),
-      totalBytes: z.number().int().positive().describe('Total file size in bytes (max 10 MB = 10485760)'),
-      sha256: z.string().optional().describe('Optional expected SHA-256 hex hash for integrity verification'),
-    },
-    async (args) => {
-      try { return ok(cms.adminCreateUpload(args)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_upload_chunk',
-    'Admin: send one base64-encoded chunk of an upload session created by admin_create_upload. Send chunkSize binary bytes per chunk (last chunk can be smaller). Max decoded size per call: 256 KB. Idempotent — resending the same chunk index is safe.',
-    {
-      uploadId: z.string().describe('Upload session ID from admin_create_upload'),
-      index: z.number().int().min(0).describe('Chunk index (0-based)'),
-      base64Chunk: z.string().describe('Base64-encoded binary chunk. Decoded size must equal chunkSize bytes (or remaining bytes for the last chunk).'),
-    },
-    async (args) => {
-      try { return ok(await cms.adminUploadChunk(args)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_complete_upload',
-    'Admin: finalize a chunked upload. Assembles all chunks, validates size, MIME type, uploads to the media bucket, and returns the public URL. Idempotent — safe to call multiple times.',
-    {
-      uploadId: z.string().describe('Upload session ID from admin_create_upload'),
-    },
-    async ({ uploadId }) => {
-      try { return ok(await cms.adminCompleteUpload({ uploadId })); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_abort_upload',
-    'Admin: cancel an incomplete chunked upload and free storage. Safe to call on already-completed or non-existent sessions.',
-    {
-      uploadId: z.string().describe('Upload session ID to cancel'),
-    },
-    async ({ uploadId }) => {
-      try { return ok(await cms.adminAbortUpload({ uploadId })); }
-      catch (e) { return err(e); }
-    },
-  );
-
   // ── IMAGE GENERATION ─────────────────────────────────────────────────────────
 
   server.tool(
@@ -325,7 +223,7 @@ export function createServer(): McpServer {
     'admin_image_delete',
     'Admin: permanently delete a media record and its file from the storage bucket by media ID. Use this in image approval flows to remove generated images that were not approved, avoiding unused files in the bucket.',
     {
-      id: z.number().int().positive().describe('Media record ID (from admin_image_generate or admin_upload_image*)'),
+      id: z.number().int().positive().describe('Media record ID (from admin_image_generate)'),
     },
     async ({ id }) => {
       try { return ok(await cms.deleteMedia(id)); }
@@ -377,36 +275,35 @@ export function createServer(): McpServer {
     },
   );
 
-  // ── Social Templates Tools ─────────────────────────────────────────────────
+  // ── Cover Templates ─────────────────────────────────────────────────────────
 
   server.tool(
-    'admin_list_social_templates',
-    'Admin: list social media cover templates. Optionally filter to only active ones.',
+    'admin_list_templates',
+    'Admin: list cover templates. Optionally filter to only active ones.',
     {
       activeOnly: z.boolean().optional().describe('If true, returns only active templates'),
     },
     async ({ activeOnly }) => {
-      try { return ok(await cms.listSocialTemplates(activeOnly)); }
+      try { return ok(await cms.listTemplates(activeOnly)); }
       catch (e) { return err(e); }
     },
   );
 
   server.tool(
-    'admin_get_social_template',
-    'Admin: get a single social media template by numeric ID.',
+    'admin_get_template',
+    'Admin: get a single cover template by numeric ID.',
     { id: z.number().int().positive().describe('Template numeric ID') },
     async ({ id }) => {
-      try { return ok(await cms.getSocialTemplate(id)); }
+      try { return ok(await cms.getTemplate(id)); }
       catch (e) { return err(e); }
     },
   );
 
   server.tool(
-    'admin_create_social_template',
-    'Admin: create a new social media cover template. Platform values: instagram_square, instagram_portrait, instagram_story, facebook, twitter, linkedin, og. The htmlContent and cssContent can use {title}, {hook}, {author}, {category}, {date}, {readingTime}, {tags}, {bgImage}, {excerpt}, {siteName} placeholders.',
+    'admin_create_template',
+    'Admin: create a new cover template. The htmlContent and cssContent can use {title}, {hook}, {author}, {category}, {date}, {readingTime}, {tags}, {bgImage}, {excerpt}, {siteName} placeholders.',
     {
       name: z.string().describe('Template name (e.g. "OG Image Default")'),
-      platform: z.enum(['instagram_square', 'instagram_portrait', 'instagram_story', 'facebook', 'twitter', 'linkedin', 'og']).describe('Target social platform'),
       htmlContent: z.string().describe('HTML content with optional {placeholder} variables'),
       cssContent: z.string().describe('CSS styles for the template'),
       width: z.number().int().positive().describe('Canvas width in pixels'),
@@ -414,18 +311,17 @@ export function createServer(): McpServer {
       active: z.boolean().optional().describe('Set to true to activate the template'),
     },
     async (args) => {
-      try { return ok(await cms.createSocialTemplate(args)); }
+      try { return ok(await cms.createTemplate(args)); }
       catch (e) { return err(e); }
     },
   );
 
   server.tool(
-    'admin_update_social_template',
-    'Admin: update an existing social media template by ID. Only provided fields are updated.',
+    'admin_update_template',
+    'Admin: update an existing cover template by ID. Only provided fields are updated.',
     {
       id: z.number().int().positive().describe('Template numeric ID'),
       name: z.string().optional(),
-      platform: z.enum(['instagram_square', 'instagram_portrait', 'instagram_story', 'facebook', 'twitter', 'linkedin', 'og']).optional(),
       htmlContent: z.string().optional(),
       cssContent: z.string().optional(),
       width: z.number().int().positive().optional(),
@@ -433,17 +329,32 @@ export function createServer(): McpServer {
       active: z.boolean().optional(),
     },
     async ({ id, ...data }) => {
-      try { return ok(await cms.updateSocialTemplate(id, data)); }
+      try { return ok(await cms.updateTemplate(id, data)); }
       catch (e) { return err(e); }
     },
   );
 
   server.tool(
-    'admin_delete_social_template',
-    'Admin: permanently delete a social media template by numeric ID.',
+    'admin_delete_template',
+    'Admin: permanently delete a cover template by numeric ID.',
     { id: z.number().int().positive().describe('Template numeric ID') },
     async ({ id }) => {
-      try { await cms.deleteSocialTemplate(id); return ok({ deleted: true, id }); }
+      try { await cms.deleteTemplate(id); return ok({ deleted: true, id }); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  // ── Cover Rendering ──────────────────────────────────────────────────────────
+
+  server.tool(
+    'admin_compose_cover',
+    'Admin: compose a cover image by merging an article with a template. Renders the template HTML+CSS with article data (title, hook, bgImage, etc.), captures a PNG screenshot via Puppeteer, and uploads it to the media bucket. Returns the public URL.',
+    {
+      articleId: z.number().int().positive().describe('Article numeric ID'),
+      templateId: z.number().int().positive().describe('Cover template numeric ID'),
+    },
+    async (args) => {
+      try { return ok(await cms.composeCover(args.articleId, args.templateId)); }
       catch (e) { return err(e); }
     },
   );
