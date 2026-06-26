@@ -301,11 +301,11 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_create_template',
-    'Admin: create a new cover template. The htmlContent and cssContent can use {title}, {hook}, {author}, {category}, {date}, {readingTime}, {tags}, {bgImage}, {excerpt}, {siteName} placeholders.',
+    'Admin: create a new cover template. The htmlContent and cssContent can use {title}, {hook}, {author}, {category}, {date}, {readingTime}, {tags}, {bgImage}, {excerpt}, {siteName} placeholders. IMPORTANT: {title} supports inline markdown — **bold** and *italic* are converted to <strong> and <em> HTML tags. You MUST include CSS rules like ".title strong { color: YOUR_ACCENT_COLOR; }" in cssContent to style bold text, and ".title em { ... }" for italic text. Otherwise bold/italic will have no visible effect.',
     {
       name: z.string().describe('Template name (e.g. "OG Image Default")'),
       htmlContent: z.string().describe('HTML content with optional {placeholder} variables'),
-      cssContent: z.string().describe('CSS styles for the template'),
+      cssContent: z.string().describe('CSS styles for the template. 🎨 IMPORTANT: add rules like ".title strong { color: ...; }" to style **bold** markdown in titles'),
       width: z.number().int().positive().describe('Canvas width in pixels'),
       height: z.number().int().positive().describe('Canvas height in pixels'),
       active: z.boolean().optional().describe('Set to true to activate the template'),
@@ -323,7 +323,7 @@ export function createServer(): McpServer {
       id: z.number().int().positive().describe('Template numeric ID'),
       name: z.string().optional(),
       htmlContent: z.string().optional(),
-      cssContent: z.string().optional(),
+      cssContent: z.string().describe('CSS styles for the template. 🎨 Remember: {title} supports **bold** and *italic* markdown — add CSS rules like ".title strong" to style them'),
       width: z.number().int().positive().optional(),
       height: z.number().int().positive().optional(),
       active: z.boolean().optional(),
