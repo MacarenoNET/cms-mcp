@@ -49,6 +49,18 @@ export function createServer(): McpServer {
   );
 
   server.tool(
+    'get_article_by_short_code',
+    'Get a published article by its 6-character short code. Returns the article with its full slug so you can construct the canonical URL.',
+    {
+      shortCode: z.string().length(6).describe('6-character short code (e.g. "abc123")'),
+    },
+    async ({ shortCode }) => {
+      try { return ok(await cms.getArticleByShortCode(shortCode)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
     'list_categories',
     'List published categories for a given locale.',
     {
@@ -156,6 +168,18 @@ export function createServer(): McpServer {
     { id: z.number().int().positive().describe('Article numeric ID') },
     async ({ id }) => {
       try { await cms.deleteArticle(id); return ok({ deleted: true, id }); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_generate_short_code',
+    'Admin: generate or retrieve the 6-character short code for an article. If the article already has a short code, it returns the existing one. Use this right after creating an article to obtain its short URL.',
+    {
+      id: z.number().int().positive().describe('Article numeric ID'),
+    },
+    async ({ id }) => {
+      try { return ok(await cms.generateArticleShortCode(id)); }
       catch (e) { return err(e); }
     },
   );
