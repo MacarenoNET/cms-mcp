@@ -336,3 +336,11 @@ export function getArticleAnalytics(articlePath: string, start?: string, end?: s
 export function createShortLink(url: string) {
   return adminPost<unknown>('/admin/short-links', { url });
 }
+
+export function updateShortLink(id: number, data: { url?: string; active?: boolean }) {
+  return adminPut<unknown>(`/admin/short-links/${id}`, data);
+}
+
+export function deleteShortLink(id: number) {
+  return adminDelete(`/admin/short-links/${id}`);
+}

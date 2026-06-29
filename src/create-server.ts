@@ -440,5 +440,29 @@ export function createServer(): McpServer {
     },
   );
 
+  server.tool(
+    'admin_update_short_link',
+    'Admin: update a short link\'s destination URL or active status. The short code is preserved.',
+    {
+      id: z.number().int().positive().describe('Short link numeric ID'),
+      url: z.string().url().optional().describe('New destination URL'),
+      active: z.boolean().optional().describe('Set to false to deactivate, true to activate'),
+    },
+    async (args) => {
+      try { return ok(await cms.updateShortLink(args.id, { url: args.url, active: args.active })); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_delete_short_link',
+    'Admin: permanently delete a short link by its numeric ID.',
+    { id: z.number().int().positive().describe('Short link numeric ID') },
+    async ({ id }) => {
+      try { await cms.deleteShortLink(id); return ok({ deleted: true, id }); }
+      catch (e) { return err(e); }
+    },
+  );
+
   return server;
 }
