@@ -429,49 +429,13 @@ export function createServer(): McpServer {
   // ── SHORT LINKS ─────────────────────────────────────────────────────────────
 
   server.tool(
-    'get_short_link',
-    'Resolve a short link code. Returns the destination URL for a given short code (e.g. "abc123"). The short URL format is https://articles.macareno.net/s/{code}.',
-    {
-      code: z.string().length(6).describe('6-character short link code'),
-    },
-    async ({ code }) => {
-      try { return ok(await cms.getShortLink(code)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
     'admin_create_short_link',
-    'Admin: create a new short link. Provide the full destination URL (e.g. "https://articles.macareno.net/es/articulo?utm_source=ig"). Returns the generated short code.',
+    'Admin: create a new short link. Receives a full destination URL and returns a 6-character short code. The short URL will be https://articles.macareno.net/{code}.',
     {
-      url: z.string().url().describe('Full destination URL including any UTM parameters'),
+      url: z.string().url().describe('Full destination URL including any UTM parameters, e.g. https://articles.macareno.net/articles/28?utm_source=ig&utm_medium=social'),
     },
     async ({ url }) => {
       try { return ok(await cms.createShortLink(url)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_list_short_links',
-    'Admin: list all short links with optional search and pagination.',
-    {
-      search: z.string().optional().describe('Search by URL or code'),
-      page: z.number().int().positive().optional(),
-      pageSize: z.number().int().positive().max(100).optional(),
-    },
-    async (args) => {
-      try { return ok(await cms.listShortLinks(args)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_delete_short_link',
-    'Admin: permanently delete a short link by its numeric ID.',
-    { id: z.number().int().positive().describe('Short link numeric ID') },
-    async ({ id }) => {
-      try { await cms.deleteShortLink(id); return ok({ deleted: true, id }); }
       catch (e) { return err(e); }
     },
   );

@@ -333,22 +333,6 @@ export function getArticleAnalytics(articlePath: string, start?: string, end?: s
 
 // ── Short Links ──────────────────────────────────────────────────────────────
 
-export function getShortLink(code: string) {
-  return publicGet<{ code: string; url: string }>(`/short/${code}`);
-}
-
-export function listShortLinks(params: { search?: string; page?: number; pageSize?: number }) {
-  const p: Record<string, string> = {};
-  if (params.search) p.search = params.search;
-  if (params.page) p.page = String(params.page);
-  if (params.pageSize) p.pageSize = String(params.pageSize);
-  return adminGet<{ shortLinks: unknown[]; total: number; pageCount: number }>('/admin/short-links', p);
-}
-
 export function createShortLink(url: string) {
   return adminPost<unknown>('/admin/short-links', { url });
-}
-
-export function deleteShortLink(id: number) {
-  return adminDelete(`/admin/short-links/${id}`);
 }
