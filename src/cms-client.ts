@@ -123,10 +123,6 @@ export function getArticle(slug: string, locale = 'es') {
   return publicGet<unknown>(`/articles/${slug}`, { locale });
 }
 
-export function getArticleByShortCode(shortCode: string) {
-  return publicGet<unknown>(`/articles/short/${shortCode}`);
-}
-
 export function listCategories(locale = 'es') {
   return publicGet<unknown[]>('/categories', { locale });
 }
@@ -195,9 +191,6 @@ export function publishArticle(id: number, publish: boolean) {
   return adminPost<unknown>(`/admin/articles/${id}/publish`, { publish });
 }
 
-export function generateArticleShortCode(id: number) {
-  return adminPost<unknown>(`/admin/articles/${id}/short-code`, {});
-}
 
 export function deleteArticle(id: number) {
   return adminDelete(`/admin/articles/${id}`);
