@@ -139,13 +139,36 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_publish_article',
-    'Admin: publish or unpublish an article by numeric ID.',
+    'Admin: publish or unpublish an article by numeric ID. Can also be used to publish a SCHEDULED article immediately.',
     {
       id: z.number().int().positive().describe('Article numeric ID'),
       publish: z.boolean().describe('true = publish, false = revert to draft'),
     },
     async ({ id, publish }) => {
       try { return ok(await cms.publishArticle(id, publish)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_schedule_article',
+    'Admin: schedule an article for future publication. The article will be automatically published at the specified date/time.',
+    {
+      id: z.number().int().positive().describe('Article numeric ID'),
+      publishDate: z.string().describe('ISO 8601 datetime (e.g. "2026-07-15T10:00:00Z")'),
+    },
+    async ({ id, publishDate }) => {
+      try { return ok(await cms.scheduleArticle(id, publishDate)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_unschedule_article',
+    'Admin: cancel a scheduled publication and revert the article to DRAFT. The article will NOT be published automatically.',
+    { id: z.number().int().positive().describe('Article numeric ID') },
+    async ({ id }) => {
+      try { return ok(await cms.unscheduleArticle(id)); }
       catch (e) { return err(e); }
     },
   );

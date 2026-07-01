@@ -191,6 +191,14 @@ export function publishArticle(id: number, publish: boolean) {
   return adminPost<unknown>(`/admin/articles/${id}/publish`, { publish });
 }
 
+export function scheduleArticle(id: number, publishDate: string) {
+  return adminPost<unknown>(`/admin/articles/${id}/schedule`, { publishDate });
+}
+
+export function unscheduleArticle(id: number) {
+  return adminPost<unknown>(`/admin/articles/${id}/unschedule`, {});
+}
+
 
 export function deleteArticle(id: number) {
   return adminDelete(`/admin/articles/${id}`);
