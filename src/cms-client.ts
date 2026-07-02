@@ -162,7 +162,7 @@ export function createArticle(data: {
   content: string;
   featured?: boolean;
   tags?: string[];
-  publishDate?: string;
+  publishedAt?: string;
   bgImageUrl?: string;
   authorId?: number;
   categoryIds?: number[];
@@ -179,7 +179,7 @@ export function updateArticle(id: number, data: {
   content?: string;
   featured?: boolean;
   tags?: string[];
-  publishDate?: string;
+  publishedAt?: string;
   bgImageUrl?: string;
   authorId?: number;
   categoryIds?: number[];
@@ -191,8 +191,8 @@ export function publishArticle(id: number, publish: boolean) {
   return adminPost<unknown>(`/admin/articles/${id}/publish`, { publish });
 }
 
-export function scheduleArticle(id: number, publishDate: string) {
-  return adminPost<unknown>(`/admin/articles/${id}/schedule`, { publishDate });
+export function scheduleArticle(id: number, publishedAt: string) {
+  return adminPost<unknown>(`/admin/articles/${id}/schedule`, { publishedAt });
 }
 
 export function unscheduleArticle(id: number) {

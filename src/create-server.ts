@@ -102,7 +102,7 @@ export function createServer(): McpServer {
       hook: z.string().optional().describe('Short punchy phrase for the cover image'),
       featured: z.boolean().optional().describe('Show in featured section'),
       tags: z.array(z.string()).optional().describe('Tag list'),
-      publishDate: z.string().optional().describe('ISO date for publish date'),
+      publishedAt: z.string().optional().describe('ISO date for publish date'),
       bgImageUrl: z.string().url().optional().describe('Cover image URL'),
       authorId: z.number().int().optional().describe('Author numeric ID'),
       categoryIds: z.array(z.number().int()).optional().describe('Category numeric IDs'),
@@ -126,7 +126,7 @@ export function createServer(): McpServer {
       hook: z.string().optional(),
       featured: z.boolean().optional(),
       tags: z.array(z.string()).optional(),
-      publishDate: z.string().optional(),
+      publishedAt: z.string().optional(),
       bgImageUrl: z.string().url().optional(),
       authorId: z.number().int().optional(),
       categoryIds: z.array(z.number().int()).optional().describe('Replaces all categories'),
@@ -155,10 +155,10 @@ export function createServer(): McpServer {
     'Admin: schedule an article for future publication. The article will be automatically published at the specified date/time.',
     {
       id: z.number().int().positive().describe('Article numeric ID'),
-      publishDate: z.string().describe('ISO 8601 datetime (e.g. "2026-07-15T10:00:00Z")'),
+      publishedAt: z.string().describe('ISO 8601 datetime (e.g. "2026-07-15T10:00:00Z")'),
     },
-    async ({ id, publishDate }) => {
-      try { return ok(await cms.scheduleArticle(id, publishDate)); }
+    async ({ id, publishedAt }) => {
+      try { return ok(await cms.scheduleArticle(id, publishedAt)); }
       catch (e) { return err(e); }
     },
   );
