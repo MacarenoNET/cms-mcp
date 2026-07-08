@@ -258,13 +258,13 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_create_category',
-    'Admin: create a new category. Use a Lucide icon name for the icon field (e.g. "Code", "ChartBar", "Palette", "Shield", "FileText", "Cloud").',
+    'Admin: create a new category. Use a Phosphor icon name for the icon field (e.g. "Code", "ChartBar", "Palette", "BookOpen", "Megaphone", "Star"). The full list of valid icon names: Article, BookOpen, Briefcase, ChartBar, ChartLine, Cloud, Code, Cpu, Cube, Desktop, DeviceMobile, Diamond, Gear, GearSix, Globe, GridFour, Heart, Lightbulb, Lightning, LockKey, MapPin, Megaphone, MonitorPlay, PaintBrush, Palette, PuzzlePiece, Rocket, ShieldCheck, Star, Storefront, Tag, TreeStructure, Users, Wrench.',
     {
       name: z.string().describe('Display name'),
       slug: z.string().describe('URL slug (lowercase, hyphens)'),
       locale: z.enum(['es', 'pt', 'en']).describe('Language'),
       description: z.string().optional().describe('Short description'),
-      icon: z.string().optional().describe('Lucide icon name (e.g. "Code", "ChartBar")'),
+      icon: z.string().optional().describe('Phosphor icon name (e.g. "Code", "ChartBar", "BookOpen")'),
     },
     async (args) => {
       try { return ok(await cms.createCategory(args)); }
@@ -280,7 +280,7 @@ export function createServer(): McpServer {
       name: z.string().optional(),
       slug: z.string().optional(),
       description: z.string().optional(),
-      icon: z.string().optional().describe('Lucide icon name'),
+      icon: z.string().optional().describe('Phosphor icon name'),
     },
     async ({ id, ...data }) => {
       try { return ok(await cms.updateCategory(id, data)); }
@@ -294,6 +294,174 @@ export function createServer(): McpServer {
     { id: z.number().int().positive().describe('Category numeric ID') },
     async ({ id }) => {
       try { await cms.deleteCategory(id); return ok({ deleted: true, id }); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  // ── TAXONOMY: GENRES ─────────────────────────────────────────────────────────
+
+  server.tool(
+    'list_genres',
+    'List genres. If no locale provided, returns all locales.',
+    {
+      locale: z.enum(['es', 'pt', 'en', 'all']).optional().describe('Language or "all" (default: all)'),
+    },
+    async ({ locale }) => {
+      try { return ok(await cms.listGenres(locale)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_create_genre',
+    'Admin: create a new genre. Pass groupId to group translations together (same groupId across es/pt/en = same concept).',
+    {
+      name: z.string().describe('Display name'),
+      slug: z.string().describe('URL slug (lowercase, hyphens)'),
+      locale: z.enum(['es', 'pt', 'en']).describe('Language'),
+      icon: z.string().optional().describe('Phosphor icon name (e.g. "TreeStructure", "Tag", "Star"). Valid names: Article, BookOpen, Briefcase, ChartBar, ChartLine, Cloud, Code, Cpu, Cube, Desktop, DeviceMobile, Diamond, Gear, GearSix, Globe, GridFour, Heart, Lightbulb, Lightning, LockKey, MapPin, Megaphone, MonitorPlay, PaintBrush, Palette, PuzzlePiece, Rocket, ShieldCheck, Star, Storefront, Tag, TreeStructure, Users, Wrench.'),
+      groupId: z.string().optional().describe('Group ID to link translations'),
+    },
+    async (args) => {
+      try { return ok(await cms.createGenre(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_update_genre',
+    'Admin: update an existing genre by numeric ID.',
+    {
+      id: z.number().int().positive().describe('Genre numeric ID'),
+      name: z.string().optional(),
+      slug: z.string().optional(),
+      icon: z.string().optional().describe('Phosphor icon name'),
+      groupId: z.string().optional(),
+    },
+    async ({ id, ...data }) => {
+      try { return ok(await cms.updateGenre(id, data)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_delete_genre',
+    'Admin: permanently delete a genre by numeric ID.',
+    { id: z.number().int().positive().describe('Genre numeric ID') },
+    async ({ id }) => {
+      try { await cms.deleteGenre(id); return ok({ deleted: true, id }); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  // ── TAXONOMY: SPECIES ────────────────────────────────────────────────────────
+
+  server.tool(
+    'list_species',
+    'List species. If no locale provided, returns all locales.',
+    {
+      locale: z.enum(['es', 'pt', 'en', 'all']).optional().describe('Language or "all" (default: all)'),
+    },
+    async ({ locale }) => {
+      try { return ok(await cms.listSpecies(locale)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_create_species',
+    'Admin: create a new species. Pass groupId to group translations together.',
+    {
+      name: z.string().describe('Display name'),
+      slug: z.string().describe('URL slug (lowercase, hyphens)'),
+      locale: z.enum(['es', 'pt', 'en']).describe('Language'),
+      icon: z.string().optional().describe('Phosphor icon name (e.g. "GridFour", "Cube", "Diamond"). Valid names: Article, BookOpen, Briefcase, ChartBar, ChartLine, Cloud, Code, Cpu, Cube, Desktop, DeviceMobile, Diamond, Gear, GearSix, Globe, GridFour, Heart, Lightbulb, Lightning, LockKey, MapPin, Megaphone, MonitorPlay, PaintBrush, Palette, PuzzlePiece, Rocket, ShieldCheck, Star, Storefront, Tag, TreeStructure, Users, Wrench.'),
+      groupId: z.string().optional().describe('Group ID to link translations'),
+    },
+    async (args) => {
+      try { return ok(await cms.createSpecies(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_update_species',
+    'Admin: update an existing species by numeric ID.',
+    {
+      id: z.number().int().positive().describe('Species numeric ID'),
+      name: z.string().optional(),
+      slug: z.string().optional(),
+      icon: z.string().optional().describe('Phosphor icon name'),
+      groupId: z.string().optional(),
+    },
+    async ({ id, ...data }) => {
+      try { return ok(await cms.updateSpecies(id, data)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_delete_species',
+    'Admin: permanently delete a species by numeric ID.',
+    { id: z.number().int().positive().describe('Species numeric ID') },
+    async ({ id }) => {
+      try { await cms.deleteSpecies(id); return ok({ deleted: true, id }); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  // ── TAXONOMY: TYPES ──────────────────────────────────────────────────────────
+
+  server.tool(
+    'list_types',
+    'List types. If no locale provided, returns all locales.',
+    {
+      locale: z.enum(['es', 'pt', 'en', 'all']).optional().describe('Language or "all" (default: all)'),
+    },
+    async ({ locale }) => {
+      try { return ok(await cms.listTypes(locale)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_create_type',
+    'Admin: create a new type. Pass groupId to group translations together.',
+    {
+      name: z.string().describe('Display name'),
+      slug: z.string().describe('URL slug (lowercase, hyphens)'),
+      locale: z.enum(['es', 'pt', 'en']).describe('Language'),
+      icon: z.string().optional().describe('Phosphor icon name (e.g. "Tag", "Code", "Gear"). Valid names: Article, BookOpen, Briefcase, ChartBar, ChartLine, Cloud, Code, Cpu, Cube, Desktop, DeviceMobile, Diamond, Gear, GearSix, Globe, GridFour, Heart, Lightbulb, Lightning, LockKey, MapPin, Megaphone, MonitorPlay, PaintBrush, Palette, PuzzlePiece, Rocket, ShieldCheck, Star, Storefront, Tag, TreeStructure, Users, Wrench.'),
+      groupId: z.string().optional().describe('Group ID to link translations'),
+    },
+    async (args) => {
+      try { return ok(await cms.createType(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_update_type',
+    'Admin: update an existing type by numeric ID.',
+    {
+      id: z.number().int().positive().describe('Type numeric ID'),
+      name: z.string().optional(),
+      slug: z.string().optional(),
+      icon: z.string().optional().describe('Phosphor icon name'),
+      groupId: z.string().optional(),
+    },
+    async ({ id, ...data }) => {
+      try { return ok(await cms.updateType(id, data)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_delete_type',
+    'Admin: permanently delete a type by numeric ID.',
+    { id: z.number().int().positive().describe('Type numeric ID') },
+    async ({ id }) => {
+      try { await cms.deleteType(id); return ok({ deleted: true, id }); }
       catch (e) { return err(e); }
     },
   );

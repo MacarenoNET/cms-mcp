@@ -264,6 +264,99 @@ export function deleteCategory(id: number): Promise<void> {
   return adminDelete(`/admin/categories/${id}`);
 }
 
+// ── Taxonomy: Genres ─────────────────────────────────────────────────────────
+
+export function listGenres(locale?: string) {
+  const p: Record<string, string> = {};
+  if (locale) p.locale = locale;
+  return adminGet<unknown[]>('/admin/genres', p);
+}
+
+export function createGenre(data: {
+  name: string;
+  slug: string;
+  locale: string;
+  icon?: string;
+  groupId?: string;
+}): Promise<unknown> {
+  return adminPost<unknown>('/admin/genres', data);
+}
+
+export function updateGenre(id: number, data: {
+  name?: string;
+  slug?: string;
+  icon?: string;
+  groupId?: string;
+}): Promise<unknown> {
+  return adminPut<unknown>(`/admin/genres/${id}`, data);
+}
+
+export function deleteGenre(id: number): Promise<void> {
+  return adminDelete(`/admin/genres/${id}`);
+}
+
+// ── Taxonomy: Species ────────────────────────────────────────────────────────
+
+export function listSpecies(locale?: string) {
+  const p: Record<string, string> = {};
+  if (locale) p.locale = locale;
+  return adminGet<unknown[]>('/admin/species', p);
+}
+
+export function createSpecies(data: {
+  name: string;
+  slug: string;
+  locale: string;
+  icon?: string;
+  groupId?: string;
+}): Promise<unknown> {
+  return adminPost<unknown>('/admin/species', data);
+}
+
+export function updateSpecies(id: number, data: {
+  name?: string;
+  slug?: string;
+  icon?: string;
+  groupId?: string;
+}): Promise<unknown> {
+  return adminPut<unknown>(`/admin/species/${id}`, data);
+}
+
+export function deleteSpecies(id: number): Promise<void> {
+  return adminDelete(`/admin/species/${id}`);
+}
+
+// ── Taxonomy: Types ──────────────────────────────────────────────────────────
+
+export function listTypes(locale?: string) {
+  const p: Record<string, string> = {};
+  if (locale) p.locale = locale;
+  return adminGet<unknown[]>('/admin/types', p);
+}
+
+export function createType(data: {
+  name: string;
+  slug: string;
+  locale: string;
+  icon?: string;
+  groupId?: string;
+}): Promise<unknown> {
+  return adminPost<unknown>('/admin/types', data);
+}
+
+export function updateType(id: number, data: {
+  name?: string;
+  slug?: string;
+  icon?: string;
+  groupId?: string;
+}): Promise<unknown> {
+  return adminPut<unknown>(`/admin/types/${id}`, data);
+}
+
+export function deleteType(id: number): Promise<void> {
+  return adminDelete(`/admin/types/${id}`);
+}
+
 // ── Cover Templates ──────────────────────────────────────────────────────────
 
 export function listTemplates(activeOnly?: boolean): Promise<unknown[]> {
