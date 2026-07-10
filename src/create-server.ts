@@ -498,7 +498,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_create_template',
-    'Admin: create a new cover template. The htmlContent and cssContent can use {title}, {hook}, {author}, {category}, {date}, {readingTime}, {tags}, {bgImage}, {excerpt}, {siteName} placeholders. IMPORTANT: {title} supports inline markdown — **bold** and *italic* are converted to <strong> and <em> HTML tags. You MUST include CSS rules like ".title strong { color: YOUR_ACCENT_COLOR; }" in cssContent to style bold text, and ".title em { ... }" for italic text. Otherwise bold/italic will have no visible effect.',
+    'Admin: create a new cover template. The htmlContent and cssContent can use {title}, {hook}, {author}, {category}, {genres}, {species}, {types}, {date}, {readingTime}, {tags}, {bgImage}, {excerpt}, {siteName} placeholders. IMPORTANT: {title} supports inline markdown — **bold** and *italic* are converted to <strong> and <em> HTML tags. You MUST include CSS rules like ".title strong { color: YOUR_ACCENT_COLOR; }" in cssContent to style bold text, and ".title em { ... }" for italic text. Otherwise bold/italic will have no visible effect.',
     {
       name: z.string().describe('Template name (e.g. "OG Image Default")'),
       htmlContent: z.string().describe('HTML content with optional {placeholder} variables'),
@@ -515,7 +515,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_update_template',
-    'Admin: update an existing cover template by ID. Only provided fields are updated.',
+    'Admin: update an existing cover template by ID. Only provided fields are updated. Available placeholders for htmlContent/cssContent: {title}, {hook}, {author}, {category}, {genres}, {species}, {types}, {date}, {readingTime}, {tags}, {bgImage}, {excerpt}, {siteName}.',
     {
       id: z.number().int().positive().describe('Template numeric ID'),
       name: z.string().optional(),
