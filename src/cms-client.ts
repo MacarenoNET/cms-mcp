@@ -445,3 +445,60 @@ export function updateShortLink(id: number, data: { url?: string; active?: boole
 export function deleteShortLink(id: number) {
   return adminDelete(`/admin/short-links/${id}`);
 }
+
+// ── Social Publications ──────────────────────────────────────────────────────
+
+export function listSocialPublications(params: {
+  platform?: string;
+  status?: string;
+  locale?: string;
+  articleId?: number;
+  page?: number;
+  pageSize?: number;
+}) {
+  const p: Record<string, string> = {};
+  if (params.platform) p.platform = params.platform;
+  if (params.status) p.status = params.status;
+  if (params.locale) p.locale = params.locale;
+  if (params.articleId) p.articleId = String(params.articleId);
+  if (params.page) p.page = String(params.page);
+  if (params.pageSize) p.pageSize = String(params.pageSize);
+  return adminGet<{ publications: unknown[]; total: number; pageCount: number }>('/admin/social-publications', p);
+}
+
+export function getSocialPublication(id: number) {
+  return adminGet<unknown>(`/admin/social-publications/${id}`);
+}
+
+export function createSocialPublication(articleId: number, platform: string, locale: string, templateId?: number) {
+  return adminPost<unknown>(`/admin/articles/${articleId}/publications`, { platform, locale, templateId });
+}
+
+export function updateSocialPublication(id: number, data: {
+  copy?: string;
+  templateId?: number | null;
+  publishedAt?: string | null;
+  shortLinkId?: number | null;
+}) {
+  return adminPut<unknown>(`/admin/social-publications/${id}`, data);
+}
+
+export function generateSocialImage(id: number) {
+  return adminPost<unknown>(`/admin/social-publications/${id}/generate-image`, {});
+}
+
+export function generateSocialCopy(id: number) {
+  return adminPost<unknown>(`/admin/social-publications/${id}/generate-copy`, {});
+}
+
+export function publishSocialPublication(id: number, publishedAt?: string) {
+  return adminPost<unknown>(`/admin/social-publications/${id}/publish`, { publishedAt });
+}
+
+export function unpublishSocialPublication(id: number) {
+  return adminPost<unknown>(`/admin/social-publications/${id}/unpublish`, {});
+}
+
+export function deleteSocialPublication(id: number) {
+  return adminDelete(`/admin/social-publications/${id}`);
+}

@@ -655,5 +655,118 @@ export function createServer(): McpServer {
     },
   );
 
+  // ── SOCIAL PUBLICATIONS ──────────────────────────────────────────────────────
+
+  server.tool(
+    'admin_list_social_publications',
+    'Admin: list social media publications with optional filters. A social publication is a planned post for LinkedIn, Twitter/X, Instagram, or Facebook. Each publication has its own copy (text), image, publishing schedule, and status (PENDING, PUBLISHED, FAILED). When a publication is published (manually or via scheduler), LinkedIn posts go live on the actual platform via API.',
+    {
+      platform: z.enum(['LINKEDIN', 'TWITTER', 'INSTAGRAM_SQUARE', 'INSTAGRAM_PORTRAIT', 'INSTAGRAM_STORY', 'FACEBOOK', 'OG_IMAGE']).optional().describe('Filter by social platform'),
+      status: z.enum(['PENDING', 'PUBLISHED', 'FAILED']).optional().describe('Filter by publication status'),
+      locale: z.enum(['es', 'pt', 'en']).optional().describe('Filter by language'),
+      articleId: z.number().int().positive().optional().describe('Filter by article ID'),
+      page: z.number().int().positive().optional().describe('Page number'),
+      pageSize: z.number().int().positive().max(100).optional().describe('Results per page'),
+    },
+    async (args) => {
+      try { return ok(await cms.listSocialPublications(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_get_social_publication',
+    'Admin: get a single social publication by ID with full details including template, short link, and article info.',
+    { id: z.number().int().positive().describe('Social publication numeric ID') },
+    async ({ id }) => {
+      try { return ok(await cms.getSocialPublication(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_create_social_publication',
+    'Admin: create a new social media publication for an article. This creates a PENDING publication with a default schedule (tomorrow at 9 AM). You can then generate an image and copy for it, and publish it manually or let the scheduler publish it automatically.',
+    {
+      articleId: z.number().int().positive().describe('Article numeric ID'),
+      platform: z.enum(['LINKEDIN', 'TWITTER', 'INSTAGRAM_SQUARE', 'INSTAGRAM_PORTRAIT', 'INSTAGRAM_STORY', 'FACEBOOK', 'OG_IMAGE']).describe('Target social platform'),
+      locale: z.enum(['es', 'pt', 'en']).describe('Language for the post'),
+      templateId: z.number().int().positive().optional().describe('Cover template ID for image generation'),
+    },
+    async ({ articleId, platform, locale, templateId }) => {
+      try { return ok(await cms.createSocialPublication(articleId, platform, locale, templateId)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_update_social_publication',
+    'Admin: update a social publication. Can set copy (post text), schedule (publishedAt), template, or short link.',
+    {
+      id: z.number().int().positive().describe('Social publication numeric ID'),
+      copy: z.string().optional().describe('Post text / copy'),
+      templateId: z.number().int().positive().nullable().optional().describe('Cover template ID (null to clear)'),
+      publishedAt: z.string().nullable().optional().describe('ISO datetime for scheduled publishing (null to clear schedule)'),
+      shortLinkId: z.number().int().positive().nullable().optional().describe('Short link ID (null to clear)'),
+    },
+    async ({ id, ...data }) => {
+      try { return ok(await cms.updateSocialPublication(id, data)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_social_generate_image',
+    'Admin: generate a cover image for a social publication by composing the article data with the assigned template. Renders HTML+CSS via Puppeteer and uploads the PNG to the media bucket. The publication gets its imageKey and imageUrl set.',
+    { id: z.number().int().positive().describe('Social publication numeric ID') },
+    async ({ id }) => {
+      try { return ok(await cms.generateSocialImage(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_social_generate_copy',
+    'Admin: generate post copy (text) for a social publication using Gemini AI. The prompt is adapted per platform and locale. The generated text is stored in the publication\'s copy field.',
+    { id: z.number().int().positive().describe('Social publication numeric ID') },
+    async ({ id }) => {
+      try { return ok(await cms.generateSocialCopy(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_social_publish',
+    'Admin: publish a social publication. For LINKEDIN: posts the image and text to the actual LinkedIn feed via the LinkedIn REST API. The post URN is saved as platformPostId. If the API call fails, status is set to FAILED with errorLog. Other platforms are marked PUBLISHED locally. Can optionally schedule for a future date.',
+    {
+      id: z.number().int().positive().describe('Social publication numeric ID'),
+      publishedAt: z.string().optional().describe('Optional ISO datetime for scheduled publishing'),
+    },
+    async ({ id, publishedAt }) => {
+      try { return ok(await cms.publishSocialPublication(id, publishedAt)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_social_unpublish',
+    'Admin: revert a published social publication back to PENDING status.',
+    { id: z.number().int().positive().describe('Social publication numeric ID') },
+    async ({ id }) => {
+      try { return ok(await cms.unpublishSocialPublication(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_delete_social_publication',
+    'Admin: permanently delete a social publication by numeric ID.',
+    { id: z.number().int().positive().describe('Social publication numeric ID') },
+    async ({ id }) => {
+      try { await cms.deleteSocialPublication(id); return ok({ deleted: true, id }); }
+      catch (e) { return err(e); }
+    },
+  );
+
   return server;
 }
