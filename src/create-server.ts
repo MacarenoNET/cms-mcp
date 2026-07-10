@@ -106,6 +106,9 @@ export function createServer(): McpServer {
       bgImageUrl: z.string().url().optional().describe('Cover image URL'),
       authorId: z.number().int().optional().describe('Author numeric ID'),
       categoryIds: z.array(z.number().int()).optional().describe('Category numeric IDs'),
+      genreIds: z.array(z.number().int()).optional().describe('Genre numeric IDs'),
+      speciesIds: z.array(z.number().int()).optional().describe('Species numeric IDs'),
+      typeIds: z.array(z.number().int()).optional().describe('Type numeric IDs'),
       documentId: z.string().optional().describe('Existing documentId to link this as a translation'),
     },
     async (args) => {
@@ -130,6 +133,9 @@ export function createServer(): McpServer {
       bgImageUrl: z.string().url().optional(),
       authorId: z.number().int().optional(),
       categoryIds: z.array(z.number().int()).optional().describe('Replaces all categories'),
+      genreIds: z.array(z.number().int()).optional().describe('Replaces all genres'),
+      speciesIds: z.array(z.number().int()).optional().describe('Replaces all species'),
+      typeIds: z.array(z.number().int()).optional().describe('Replaces all types'),
     },
     async ({ id, ...data }) => {
       try { return ok(await cms.updateArticle(id, data)); }

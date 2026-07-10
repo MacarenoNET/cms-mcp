@@ -166,6 +166,9 @@ export function createArticle(data: {
   bgImageUrl?: string;
   authorId?: number;
   categoryIds?: number[];
+  genreIds?: number[];
+  speciesIds?: number[];
+  typeIds?: number[];
   documentId?: string;
 }) {
   return adminPost<unknown>('/admin/articles', data);
@@ -183,6 +186,9 @@ export function updateArticle(id: number, data: {
   bgImageUrl?: string;
   authorId?: number;
   categoryIds?: number[];
+  genreIds?: number[];
+  speciesIds?: number[];
+  typeIds?: number[];
 }) {
   return adminPut<unknown>(`/admin/articles/${id}`, data);
 }
