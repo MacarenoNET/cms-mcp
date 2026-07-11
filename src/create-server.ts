@@ -71,8 +71,8 @@ export function createServer(): McpServer {
       search: z.string().optional().describe('Search in title or slug'),
       category: z.string().optional().describe('Category slug'),
       documentId: z.string().optional().describe('Group ID shared across translations'),
-      page: z.number().int().positive().optional(),
-      pageSize: z.number().int().positive().max(100).optional(),
+      page: z.number().int().positive().optional().describe('Page number (default: 1)'),
+      pageSize: z.number().int().positive().max(100).optional().describe('Results per page (max: 100)'),
     },
     async (args) => {
       try { return ok(await cms.listAllArticles(args)); }
@@ -92,7 +92,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_create_article',
-    'Admin: create a new article. To create a translation, pass the documentId of the existing article group.',
+    'Admin: create a new article. To create a translation, pass the documentId of the existing article group. NOTE: Social Posts are now independent entities — use admin_create_social_publication to create social posts instead.',
     {
       title: z.string().describe('Article title'),
       slug: z.string().describe('URL slug (lowercase, hyphens)'),
@@ -119,19 +119,19 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_update_article',
-    'Admin: update an existing article by numeric ID. Only provided fields are updated.',
+    'Admin: update an existing article by numeric ID. Only provided fields are updated. Fields like title, slug, excerpt, content, hook, tags, publishedAt, bgImageUrl, authorId, categoryIds, genreIds, speciesIds, typeIds — all optional — are patched individually.',
     {
       id: z.number().int().positive().describe('Article numeric ID'),
-      title: z.string().optional(),
-      slug: z.string().optional(),
-      excerpt: z.string().optional(),
+      title: z.string().optional().describe('New article title'),
+      slug: z.string().optional().describe('New URL slug (lowercase, hyphens)'),
+      excerpt: z.string().optional().describe('New short summary'),
       content: z.string().optional().describe('Full content in Markdown'),
-      hook: z.string().optional(),
-      featured: z.boolean().optional(),
-      tags: z.array(z.string()).optional(),
-      publishedAt: z.string().optional(),
-      bgImageUrl: z.string().url().optional(),
-      authorId: z.number().int().optional(),
+      hook: z.string().optional().describe('New punchy phrase for the cover image'),
+      featured: z.boolean().optional().describe('Toggle featured status'),
+      tags: z.array(z.string()).optional().describe('Replaces all tags'),
+      publishedAt: z.string().optional().describe('ISO date to set publish date (nullify by omitting)'),
+      bgImageUrl: z.string().url().optional().describe('New cover image URL'),
+      authorId: z.number().int().optional().describe('New author numeric ID'),
       categoryIds: z.array(z.number().int()).optional().describe('Replaces all categories'),
       genreIds: z.array(z.number().int()).optional().describe('Replaces all genres'),
       speciesIds: z.array(z.number().int()).optional().describe('Replaces all species'),
@@ -202,7 +202,7 @@ export function createServer(): McpServer {
   server.tool(
     'admin_list_categories',
     'Admin: list all categories (all locales or filtered).',
-    { locale: z.enum(['es', 'pt', 'en', 'all']).optional() },
+    { locale: z.enum(['es', 'pt', 'en', 'all']).optional().describe('Language or "all" (default: all)') },
     async ({ locale }) => {
       try { return ok(await cms.listAllCategories(locale)); }
       catch (e) { return err(e); }
@@ -214,8 +214,8 @@ export function createServer(): McpServer {
     'Admin: list newsletter subscribers with optional search and pagination.',
     {
       search: z.string().optional().describe('Filter by email'),
-      page: z.number().int().positive().optional(),
-      pageSize: z.number().int().positive().max(100).optional(),
+      page: z.number().int().positive().optional().describe('Page number (default: 1)'),
+      pageSize: z.number().int().positive().max(100).optional().describe('Results per page (max: 100)'),
     },
     async (args) => {
       try { return ok(await cms.listSubscribers(args)); }
@@ -280,12 +280,12 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_update_category',
-    'Admin: update an existing category by numeric ID.',
+    'Admin: update an existing category by numeric ID. Only provided fields are updated.',
     {
       id: z.number().int().positive().describe('Category numeric ID'),
-      name: z.string().optional(),
-      slug: z.string().optional(),
-      description: z.string().optional(),
+      name: z.string().optional().describe('New display name'),
+      slug: z.string().optional().describe('New URL slug'),
+      description: z.string().optional().describe('New description'),
       icon: z.string().optional().describe('Phosphor icon name'),
     },
     async ({ id, ...data }) => {
@@ -336,13 +336,13 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_update_genre',
-    'Admin: update an existing genre by numeric ID.',
+    'Admin: update an existing genre by numeric ID. Only provided fields are updated.',
     {
       id: z.number().int().positive().describe('Genre numeric ID'),
-      name: z.string().optional(),
-      slug: z.string().optional(),
+      name: z.string().optional().describe('New display name'),
+      slug: z.string().optional().describe('New URL slug'),
       icon: z.string().optional().describe('Phosphor icon name'),
-      groupId: z.string().optional(),
+      groupId: z.string().optional().describe('Group ID to link translations'),
     },
     async ({ id, ...data }) => {
       try { return ok(await cms.updateGenre(id, data)); }
@@ -392,13 +392,13 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_update_species',
-    'Admin: update an existing species by numeric ID.',
+    'Admin: update an existing species by numeric ID. Only provided fields are updated.',
     {
       id: z.number().int().positive().describe('Species numeric ID'),
-      name: z.string().optional(),
-      slug: z.string().optional(),
+      name: z.string().optional().describe('New display name'),
+      slug: z.string().optional().describe('New URL slug'),
       icon: z.string().optional().describe('Phosphor icon name'),
-      groupId: z.string().optional(),
+      groupId: z.string().optional().describe('Group ID to link translations'),
     },
     async ({ id, ...data }) => {
       try { return ok(await cms.updateSpecies(id, data)); }
@@ -448,13 +448,13 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_update_type',
-    'Admin: update an existing type by numeric ID.',
+    'Admin: update an existing type by numeric ID. Only provided fields are updated.',
     {
       id: z.number().int().positive().describe('Type numeric ID'),
-      name: z.string().optional(),
-      slug: z.string().optional(),
+      name: z.string().optional().describe('New display name'),
+      slug: z.string().optional().describe('New URL slug'),
       icon: z.string().optional().describe('Phosphor icon name'),
-      groupId: z.string().optional(),
+      groupId: z.string().optional().describe('Group ID to link translations'),
     },
     async ({ id, ...data }) => {
       try { return ok(await cms.updateType(id, data)); }
@@ -518,12 +518,12 @@ export function createServer(): McpServer {
     'Admin: update an existing cover template by ID. Only provided fields are updated. Available placeholders for htmlContent/cssContent: {title}, {hook}, {author}, {category}, {genres}, {species}, {types}, {date}, {readingTime}, {tags}, {bgImage}, {excerpt}, {siteName}.',
     {
       id: z.number().int().positive().describe('Template numeric ID'),
-      name: z.string().optional(),
-      htmlContent: z.string().optional(),
+      name: z.string().optional().describe('New template name'),
+      htmlContent: z.string().optional().describe('HTML content with optional {placeholder} variables'),
       cssContent: z.string().describe('CSS styles for the template. 🎨 Remember: {title} supports **bold** and *italic* markdown — add CSS rules like ".title strong" to style them'),
-      width: z.number().int().positive().optional(),
-      height: z.number().int().positive().optional(),
-      active: z.boolean().optional(),
+      width: z.number().int().positive().optional().describe('New canvas width in pixels'),
+      height: z.number().int().positive().optional().describe('New canvas height in pixels'),
+      active: z.boolean().optional().describe('Toggle active status'),
     },
     async ({ id, ...data }) => {
       try { return ok(await cms.updateTemplate(id, data)); }
@@ -545,13 +545,28 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_compose_cover',
-    'Admin: compose a cover image by merging an article with a template. Renders the template HTML+CSS with article data (title, hook, bgImage, etc.), captures a PNG screenshot via Puppeteer, and uploads it to the media bucket. Returns the public URL.',
+    'Admin: compose a cover image from a CoverPayload object and a template. Renders template HTML+CSS with provided data, captures a PNG screenshot via Puppeteer, and uploads to media bucket. Returns the public URL.',
     {
-      articleId: z.number().int().positive().describe('Article numeric ID'),
       templateId: z.number().int().positive().describe('Cover template numeric ID'),
+      title: z.string().optional().describe('Article title (supports **bold** and *italic* markdown)'),
+      excerpt: z.string().optional().describe('Article excerpt/summary'),
+      hook: z.string().optional().describe('Short punchy phrase for the cover'),
+      author: z.string().optional().describe('Author name'),
+      category: z.string().optional().describe('Category name'),
+      genres: z.string().optional().describe('Genres (comma-separated)'),
+      species: z.string().optional().describe('Species (comma-separated)'),
+      types: z.string().optional().describe('Types (comma-separated)'),
+      date: z.string().optional().describe('Publication date'),
+      readingTime: z.string().optional().describe('Reading time (e.g. "5 min de lectura")'),
+      tags: z.string().optional().describe('Tags (comma-separated)'),
+      bgImage: z.string().optional().describe('Background image URL'),
+      siteName: z.string().optional().describe('Site name (default: MacarenoNet)'),
     },
     async (args) => {
-      try { return ok(await cms.composeCover(args.articleId, args.templateId)); }
+      try {
+        const { templateId, ...payload } = args;
+        return ok(await cms.composeCover(payload, templateId));
+      }
       catch (e) { return err(e); }
     },
   );
@@ -587,11 +602,228 @@ export function createServer(): McpServer {
     'admin_analytics_sources',
     'Admin: get traffic sources breakdown from GA4 (source, medium, sessions, views).',
     {
-      start: z.string().optional(),
-      end: z.string().optional(),
+      start: z.string().optional().describe('Start date (default: 7daysAgo)'),
+      end: z.string().optional().describe('End date (default: yesterday)'),
     },
     async (args) => {
       try { return ok(await cms.getAnalyticsSources(args.start, args.end)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  // ── Social Publications ────────────────────────────────────────────────────
+
+  server.tool(
+    'admin_list_social_publications',
+    'Admin: list all social publications with optional filters (platform, status, locale, articleId).',
+    {
+      platform: z.string().optional().describe('Filter by platform (LINKEDIN, TWITTER, INSTAGRAM_SQUARE, etc.)'),
+      status: z.string().optional().describe('Filter by status (PENDING, PUBLISHED, FAILED)'),
+      locale: z.string().optional().describe('Filter by locale'),
+      articleId: z.number().int().optional().describe('Filter by article ID'),
+      page: z.number().int().positive().optional().describe('Page number (default: 1)'),
+      pageSize: z.number().int().positive().max(100).optional().describe('Results per page (max: 100)'),
+    },
+    async (args) => {
+      try { return ok(await cms.listSocialPublications(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_get_social_publication',
+    'Admin: get a single social publication by ID. Returns full details including platform, status, copy, imageUrl, publishedAt, locale, and linked article info.',
+    { id: z.number().int().positive().describe('Social publication numeric ID') },
+    async ({ id }) => {
+      try { return ok(await cms.getSocialPublication(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_create_social_publication',
+    'Admin: create a new social publication. ArticleId is optional — standalone posts (marketing, ads) are supported. After creation, use admin_update_social_publication to set copy, status, date and image.',
+    {
+      platform: z.string().describe('Platform (LINKEDIN, TWITTER, INSTAGRAM_SQUARE, INSTAGRAM_PORTRAIT, INSTAGRAM_STORY, FACEBOOK, OG_IMAGE)'),
+      locale: z.string().describe('Language (es, pt, en)'),
+      articleId: z.number().int().optional().describe('Optional article ID to link this post to'),
+      templateId: z.number().int().optional().describe('Optional cover template ID'),
+    },
+    async (args) => {
+      try { return ok(await cms.createSocialPublication(args.platform, args.locale, args.articleId, args.templateId)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_update_social_publication',
+    'Admin: update an existing social publication by ID. Only provided fields are updated. Supports copy, status, publishedAt, imageUrl/imageKey, templateId, and shortLinkId.',
+    {
+      id: z.number().int().positive().describe('Publication ID'),
+      copy: z.string().optional().describe('Post text content'),
+      status: z.string().optional().describe('Status (PENDING, PUBLISHED, FAILED)'),
+      publishedAt: z.string().optional().describe('ISO date string for scheduling/publishing'),
+      imageUrl: z.string().optional().describe('Cover image URL from compose_cover'),
+      imageKey: z.string().optional().describe('Cover image storage key'),
+      templateId: z.number().int().optional().describe('Cover template ID to assign'),
+      shortLinkId: z.number().int().optional().describe('Short link ID to associate'),
+    },
+    async ({ id, ...data }) => {
+      try { return ok(await cms.updateSocialPublication(id, data)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_generate_social_image',
+    'Admin: generate a cover image for a social publication. If the post has an articleId, it resolves article data automatically. For standalone posts, pass a CoverPayload (title, excerpt, hook, etc.) to generate the image from scratch without an article.',
+    {
+      id: z.number().int().positive().describe('Publication ID'),
+      title: z.string().optional().describe('Title text (supports **bold** markdown)'),
+      excerpt: z.string().optional().describe('Excerpt/summary text'),
+      hook: z.string().optional().describe('Hook/punchy phrase'),
+      author: z.string().optional().describe('Author name'),
+      category: z.string().optional().describe('Category name'),
+      genres: z.string().optional().describe('Genres, comma-separated'),
+      species: z.string().optional().describe('Species, comma-separated'),
+      types: z.string().optional().describe('Types, comma-separated'),
+      date: z.string().optional().describe('Publication date string'),
+      readingTime: z.string().optional().describe('Reading time (e.g. "5 min de lectura")'),
+      tags: z.string().optional().describe('Tags, comma-separated'),
+      bgImage: z.string().optional().describe('Background image URL'),
+      siteName: z.string().optional().describe('Site name (default: MacarenoNet)'),
+    },
+    async (args) => {
+      try {
+        const { id, ...payload } = args;
+        const hasPayload = Object.values(payload).some(v => v !== undefined);
+        return ok(await cms.generateSocialImage(id, hasPayload ? payload : undefined));
+      }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_generate_social_copy',
+    'Admin: generate AI copy text for a social publication using the linked article data and platform prompt template.',
+    { id: z.number().int().positive().describe('Publication ID') },
+    async ({ id }) => {
+      try { return ok(await cms.generateSocialCopy(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_generate_copy_from_prompt',
+    'Admin: generate copy text from a custom prompt template using Gemini AI. Replaces {title}, {excerpt}, {hook}, {locale} placeholders in the prompt. Does NOT require an existing social publication — use this for standalone/adhoc copy generation.',
+    {
+      promptTemplate: z.string().describe('Prompt template with optional {title}, {excerpt}, {hook}, {locale} placeholders'),
+      title: z.string().optional().describe('Article title to inject into the prompt'),
+      excerpt: z.string().optional().describe('Article excerpt to inject'),
+      hook: z.string().optional().describe('Article hook to inject'),
+      locale: z.string().optional().describe('Locale (es/pt/en) to inject'),
+    },
+    async (args) => {
+      try {
+        const { promptTemplate, ...vars } = args;
+        return ok(await cms.generateCopyFromPrompt(promptTemplate, vars));
+      }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_publish_social_publication',
+    'Admin: publish a social publication immediately or schedule it.',
+    {
+      id: z.number().int().positive().describe('Publication ID'),
+      publishedAt: z.string().optional().describe('Optional ISO date for scheduled publishing'),
+    },
+    async ({ id, publishedAt }) => {
+      try { return ok(await cms.publishSocialPublication(id, publishedAt)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_unpublish_social_publication',
+    'Admin: revert a published social publication back to PENDING draft.',
+    { id: z.number().int().positive().describe('Publication ID') },
+    async ({ id }) => {
+      try { return ok(await cms.unpublishSocialPublication(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_delete_social_publication',
+    'Admin: permanently delete a social publication by ID.',
+    { id: z.number().int().positive().describe('Publication ID') },
+    async ({ id }) => {
+      try { await cms.deleteSocialPublication(id); return ok({ deleted: true, id }); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  // ── Social Prompts ─────────────────────────────────────────────────────────
+
+  server.tool(
+    'admin_list_social_prompts',
+    'Admin: list AI copy generation prompts. Each prompt is a template for a specific social platform (LinkedIn, Twitter, etc.). Optionally filter to only active prompts.',
+    {
+      activeOnly: z.boolean().optional().describe('If true, returns only active prompts'),
+    },
+    async ({ activeOnly }) => {
+      try { return ok(await cms.listSocialPrompts(activeOnly)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_get_social_prompt',
+    'Admin: get a single social prompt by ID.',
+    { id: z.number().int().positive().describe('Social prompt numeric ID') },
+    async ({ id }) => {
+      try { return ok(await cms.getSocialPrompt(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_create_social_prompt',
+    'Admin: create a new AI copy generation prompt for a platform. The prompt can use placeholders {title}, {excerpt}, {hook}, {locale} that get replaced dynamically when generating copy.',
+    {
+      platform: z.string().describe('Platform name (LINKEDIN, TWITTER, INSTAGRAM_SQUARE, INSTAGRAM_PORTRAIT, INSTAGRAM_STORY, FACEBOOK, OG_IMAGE)'),
+      prompt: z.string().describe('Prompt template with optional {title}, {excerpt}, {hook}, {locale} placeholders'),
+      active: z.boolean().optional().describe('Set to true to activate this prompt'),
+    },
+    async (args) => {
+      try { return ok(await cms.createSocialPrompt(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_update_social_prompt',
+    'Admin: update an existing social prompt by ID. Only provided fields are updated.',
+    {
+      id: z.number().int().positive().describe('Social prompt numeric ID'),
+      platform: z.string().optional().describe('Platform name (LINKEDIN, TWITTER, etc.)'),
+      prompt: z.string().optional().describe('Prompt template text'),
+      active: z.boolean().optional().describe('Toggle active status'),
+    },
+    async ({ id, ...data }) => {
+      try { return ok(await cms.updateSocialPrompt(id, data)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_delete_social_prompt',
+    'Admin: permanently delete a social prompt by ID.',
+    { id: z.number().int().positive().describe('Social prompt numeric ID') },
+    async ({ id }) => {
+      try { await cms.deleteSocialPrompt(id); return ok({ deleted: true, id }); }
       catch (e) { return err(e); }
     },
   );
@@ -600,8 +832,8 @@ export function createServer(): McpServer {
     'admin_analytics_audience',
     'Admin: get audience breakdown by device category and country from GA4.',
     {
-      start: z.string().optional(),
-      end: z.string().optional(),
+      start: z.string().optional().describe('Start date (default: 7daysAgo)'),
+      end: z.string().optional().describe('End date (default: yesterday)'),
     },
     async (args) => {
       try { return ok(await cms.getAnalyticsAudience(args.start, args.end)); }
@@ -614,8 +846,8 @@ export function createServer(): McpServer {
     'Admin: get detailed GA4 stats for a single article (views over time, sources, totals). Provide the article path like "/article/my-article-slug".',
     {
       path: z.string().describe('Article path, e.g. "/article/my-slug"'),
-      start: z.string().optional(),
-      end: z.string().optional(),
+      start: z.string().optional().describe('Start date (default: 7daysAgo)'),
+      end: z.string().optional().describe('End date (default: yesterday)'),
     },
     async (args) => {
       try { return ok(await cms.getArticleAnalytics(args.path, args.start, args.end)); }
@@ -661,118 +893,12 @@ export function createServer(): McpServer {
     },
   );
 
-  // ── SOCIAL PUBLICATIONS ──────────────────────────────────────────────────────
-
-  server.tool(
-    'admin_list_social_publications',
-    'Admin: list social media publications with optional filters. A social publication is a planned post for LinkedIn, Twitter/X, Instagram, or Facebook. Each publication has its own copy (text), image, publishing schedule, and status (PENDING, PUBLISHED, FAILED). When a publication is published (manually or via scheduler), LinkedIn posts go live on the actual platform via API.',
-    {
-      platform: z.enum(['LINKEDIN', 'TWITTER', 'INSTAGRAM_SQUARE', 'INSTAGRAM_PORTRAIT', 'INSTAGRAM_STORY', 'FACEBOOK', 'OG_IMAGE']).optional().describe('Filter by social platform'),
-      status: z.enum(['PENDING', 'PUBLISHED', 'FAILED']).optional().describe('Filter by publication status'),
-      locale: z.enum(['es', 'pt', 'en']).optional().describe('Filter by language'),
-      articleId: z.number().int().positive().optional().describe('Filter by article ID'),
-      page: z.number().int().positive().optional().describe('Page number'),
-      pageSize: z.number().int().positive().max(100).optional().describe('Results per page'),
-    },
-    async (args) => {
-      try { return ok(await cms.listSocialPublications(args)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_get_social_publication',
-    'Admin: get a single social publication by ID with full details including template, short link, and article info.',
-    { id: z.number().int().positive().describe('Social publication numeric ID') },
-    async ({ id }) => {
-      try { return ok(await cms.getSocialPublication(id)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_create_social_publication',
-    'Admin: create a new social media publication for an article. This creates a PENDING publication with a default schedule (tomorrow at 9 AM). You can then generate an image and copy for it, and publish it manually or let the scheduler publish it automatically.',
-    {
-      articleId: z.number().int().positive().describe('Article numeric ID'),
-      platform: z.enum(['LINKEDIN', 'TWITTER', 'INSTAGRAM_SQUARE', 'INSTAGRAM_PORTRAIT', 'INSTAGRAM_STORY', 'FACEBOOK', 'OG_IMAGE']).describe('Target social platform'),
-      locale: z.enum(['es', 'pt', 'en']).describe('Language for the post'),
-      templateId: z.number().int().positive().optional().describe('Cover template ID for image generation'),
-    },
-    async ({ articleId, platform, locale, templateId }) => {
-      try { return ok(await cms.createSocialPublication(articleId, platform, locale, templateId)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_update_social_publication',
-    'Admin: update a social publication. Can set copy (post text), schedule (publishedAt), template, or short link.',
-    {
-      id: z.number().int().positive().describe('Social publication numeric ID'),
-      copy: z.string().optional().describe('Post text / copy'),
-      templateId: z.number().int().positive().nullable().optional().describe('Cover template ID (null to clear)'),
-      publishedAt: z.string().nullable().optional().describe('ISO datetime for scheduled publishing (null to clear schedule)'),
-      shortLinkId: z.number().int().positive().nullable().optional().describe('Short link ID (null to clear)'),
-    },
-    async ({ id, ...data }) => {
-      try { return ok(await cms.updateSocialPublication(id, data)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_social_generate_image',
-    'Admin: generate a cover image for a social publication by composing the article data with the assigned template. Renders HTML+CSS via Puppeteer and uploads the PNG to the media bucket. The publication gets its imageKey and imageUrl set.',
-    { id: z.number().int().positive().describe('Social publication numeric ID') },
-    async ({ id }) => {
-      try { return ok(await cms.generateSocialImage(id)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_social_generate_copy',
-    'Admin: generate post copy (text) for a social publication using Gemini AI. The prompt is adapted per platform and locale. The generated text is stored in the publication\'s copy field.',
-    { id: z.number().int().positive().describe('Social publication numeric ID') },
-    async ({ id }) => {
-      try { return ok(await cms.generateSocialCopy(id)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_social_publish',
-    'Admin: publish a social publication. For LINKEDIN: posts the image and text to the actual LinkedIn feed via the LinkedIn REST API. The post URN is saved as platformPostId. If the API call fails, status is set to FAILED with errorLog. Other platforms are marked PUBLISHED locally. Can optionally schedule for a future date.',
-    {
-      id: z.number().int().positive().describe('Social publication numeric ID'),
-      publishedAt: z.string().optional().describe('Optional ISO datetime for scheduled publishing'),
-    },
-    async ({ id, publishedAt }) => {
-      try { return ok(await cms.publishSocialPublication(id, publishedAt)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_social_unpublish',
-    'Admin: revert a published social publication back to PENDING status.',
-    { id: z.number().int().positive().describe('Social publication numeric ID') },
-    async ({ id }) => {
-      try { return ok(await cms.unpublishSocialPublication(id)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_delete_social_publication',
-    'Admin: permanently delete a social publication by numeric ID.',
-    { id: z.number().int().positive().describe('Social publication numeric ID') },
-    async ({ id }) => {
-      try { await cms.deleteSocialPublication(id); return ok({ deleted: true, id }); }
-      catch (e) { return err(e); }
-    },
-  );
+  // ── SOCIAL PUBLICATIONS (new tools defined above after compose_cover) ──────
+  // New tools: admin_list_social_publications, admin_get_social_publication,
+  // admin_create_social_publication, admin_update_social_publication,
+  // admin_generate_social_image, admin_generate_social_copy,
+  // admin_generate_copy_from_prompt, admin_publish_social_publication,
+  // admin_unpublish_social_publication, admin_delete_social_publication
 
   return server;
 }

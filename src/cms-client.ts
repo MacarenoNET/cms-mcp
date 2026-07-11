@@ -403,8 +403,24 @@ export function deleteTemplate(id: number): Promise<void> {
 
 // ── Cover Rendering ──────────────────────────────────────────────────────────
 
-export function composeCover(articleId: number, templateId: number): Promise<{ id: number; key: string; url: string }> {
-  return adminPost<{ id: number; key: string; url: string }>('/admin/compose-cover', { articleId, templateId });
+export interface CoverPayload {
+  title?: string;
+  excerpt?: string;
+  hook?: string;
+  author?: string;
+  category?: string;
+  genres?: string;
+  species?: string;
+  types?: string;
+  date?: string;
+  readingTime?: string;
+  tags?: string;
+  bgImage?: string;
+  siteName?: string;
+}
+
+export function composeCover(payload: CoverPayload, templateId: number): Promise<{ id: number; key: string; url: string }> {
+  return adminPost<{ id: number; key: string; url: string }>('/admin/compose-cover', { ...payload, templateId });
 }
 
 // ── Analytics ────────────────────────────────────────────────────────────────
@@ -476,8 +492,8 @@ export function getSocialPublication(id: number) {
   return adminGet<unknown>(`/admin/social-publications/${id}`);
 }
 
-export function createSocialPublication(articleId: number, platform: string, locale: string, templateId?: number) {
-  return adminPost<unknown>(`/admin/articles/${articleId}/publications`, { platform, locale, templateId });
+export function createSocialPublication(platform: string, locale: string, articleId?: number, templateId?: number) {
+  return adminPost<unknown>('/admin/social-publications', { platform, locale, articleId, templateId });
 }
 
 export function updateSocialPublication(id: number, data: {
@@ -485,16 +501,23 @@ export function updateSocialPublication(id: number, data: {
   templateId?: number | null;
   publishedAt?: string | null;
   shortLinkId?: number | null;
+  status?: string;
+  imageUrl?: string | null;
+  imageKey?: string | null;
 }) {
   return adminPut<unknown>(`/admin/social-publications/${id}`, data);
 }
 
-export function generateSocialImage(id: number) {
-  return adminPost<unknown>(`/admin/social-publications/${id}/generate-image`, {});
+export function generateSocialImage(id: number, payload?: CoverPayload) {
+  return adminPost<unknown>(`/admin/social-publications/${id}/generate-image`, payload ?? {});
 }
 
 export function generateSocialCopy(id: number) {
   return adminPost<unknown>(`/admin/social-publications/${id}/generate-copy`, {});
+}
+
+export function generateCopyFromPrompt(promptTemplate: string, vars: { title?: string; excerpt?: string; hook?: string; locale?: string }) {
+  return adminPost<{ copy: string }>('/admin/generate-copy-from-prompt', { promptTemplate, ...vars });
 }
 
 export function publishSocialPublication(id: number, publishedAt?: string) {
@@ -507,4 +530,28 @@ export function unpublishSocialPublication(id: number) {
 
 export function deleteSocialPublication(id: number) {
   return adminDelete(`/admin/social-publications/${id}`);
+}
+
+// ── Social Prompts ───────────────────────────────────────────────────────────
+
+export function listSocialPrompts(activeOnly?: boolean) {
+  const p: Record<string, string> = {};
+  if (activeOnly !== undefined) p.active = String(activeOnly);
+  return adminGet<{ prompts: unknown[] }>('/admin/social-prompts', p);
+}
+
+export function getSocialPrompt(id: number) {
+  return adminGet<unknown>(`/admin/social-prompts/${id}`);
+}
+
+export function createSocialPrompt(data: { platform: string; prompt: string; active?: boolean }) {
+  return adminPost<unknown>('/admin/social-prompts', data);
+}
+
+export function updateSocialPrompt(id: number, data: { platform?: string; prompt?: string; active?: boolean }) {
+  return adminPut<unknown>(`/admin/social-prompts/${id}`, data);
+}
+
+export function deleteSocialPrompt(id: number) {
+  return adminDelete(`/admin/social-prompts/${id}`);
 }
