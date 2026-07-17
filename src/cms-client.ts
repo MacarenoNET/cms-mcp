@@ -105,7 +105,6 @@ export function listArticles(params: {
   locale?: string;
   page?: number;
   pageSize?: number;
-  category?: string;
   featured?: boolean;
   q?: string;
 }) {
@@ -113,7 +112,6 @@ export function listArticles(params: {
   if (params.locale) p.locale = params.locale;
   if (params.page) p.page = String(params.page);
   if (params.pageSize) p.pageSize = String(params.pageSize);
-  if (params.category) p.category = params.category;
   if (params.featured !== undefined) p.featured = String(params.featured);
   if (params.q) p.q = params.q;
   return publicGet<{ articles: unknown[]; total: number; pageCount: number }>('/articles', p);
@@ -123,17 +121,12 @@ export function getArticle(slug: string, locale = 'es') {
   return publicGet<unknown>(`/articles/${slug}`, { locale });
 }
 
-export function listCategories(locale = 'es') {
-  return publicGet<unknown[]>('/categories', { locale });
-}
-
 // ── Admin API ─────────────────────────────────────────────────────────────────
 
 export function listAllArticles(params: {
   locale?: string;
   status?: 'all' | 'published' | 'draft';
   search?: string;
-  category?: string;
   documentId?: string;
   page?: number;
   pageSize?: number;
@@ -142,7 +135,6 @@ export function listAllArticles(params: {
   if (params.locale) p.locale = params.locale;
   if (params.status) p.status = params.status;
   if (params.search) p.search = params.search;
-  if (params.category) p.category = params.category;
   if (params.documentId) p.documentId = params.documentId;
   if (params.page) p.page = String(params.page);
   if (params.pageSize) p.pageSize = String(params.pageSize);
@@ -165,7 +157,6 @@ export function createArticle(data: {
   publishedAt?: string;
   bgImageUrl?: string;
   authorId?: number;
-  categoryIds?: number[];
   genreIds?: number[];
   speciesIds?: number[];
   typeIds?: number[];
@@ -185,7 +176,6 @@ export function updateArticle(id: number, data: {
   publishedAt?: string;
   bgImageUrl?: string;
   authorId?: number;
-  categoryIds?: number[];
   genreIds?: number[];
   speciesIds?: number[];
   typeIds?: number[];
@@ -226,12 +216,6 @@ export function getLikesStats() {
   return adminGet<{ totalLikes: number; topArticles: unknown[] }>('/admin/likes');
 }
 
-export function listAllCategories(locale?: string) {
-  const p: Record<string, string> = {};
-  if (locale) p.locale = locale;
-  return adminGet<unknown[]>('/admin/categories', p);
-}
-
 // ── Image generation ──────────────────────────────────────────────────────────
 
 export function generateImage(params: {
@@ -245,37 +229,16 @@ export function deleteMedia(id: number): Promise<{ deleted: boolean }> {
   return adminFetch<{ deleted: boolean }>(`/admin/upload/${id}`, { method: 'DELETE' });
 }
 
-// ── Category admin ────────────────────────────────────────────────────────────
-
-export function createCategory(data: {
-  name: string;
-  slug: string;
-  locale: string;
-  description?: string;
-  icon?: string;
-}): Promise<unknown> {
-  return adminPost<unknown>('/admin/categories', data);
-}
-
-export function updateCategory(id: number, data: {
-  name?: string;
-  slug?: string;
-  description?: string;
-  icon?: string;
-}): Promise<unknown> {
-  return adminPut<unknown>(`/admin/categories/${id}`, data);
-}
-
-export function deleteCategory(id: number): Promise<void> {
-  return adminDelete(`/admin/categories/${id}`);
-}
-
 // ── Taxonomy: Genres ─────────────────────────────────────────────────────────
 
 export function listGenres(locale?: string) {
   const p: Record<string, string> = {};
   if (locale) p.locale = locale;
   return adminGet<unknown[]>('/admin/genres', p);
+}
+
+export function getGenre(id: number) {
+  return adminGet<unknown>(`/admin/genres/${id}`);
 }
 
 export function createGenre(data: {
@@ -309,6 +272,10 @@ export function listSpecies(locale?: string) {
   return adminGet<unknown[]>('/admin/species', p);
 }
 
+export function getSpecies(id: number) {
+  return adminGet<unknown>(`/admin/species/${id}`);
+}
+
 export function createSpecies(data: {
   name: string;
   slug: string;
@@ -338,6 +305,10 @@ export function listTypes(locale?: string) {
   const p: Record<string, string> = {};
   if (locale) p.locale = locale;
   return adminGet<unknown[]>('/admin/types', p);
+}
+
+export function getType(id: number) {
+  return adminGet<unknown>(`/admin/types/${id}`);
 }
 
 export function createType(data: {

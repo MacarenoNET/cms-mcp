@@ -20,12 +20,11 @@ export function createServer(): McpServer {
 
   server.tool(
     'list_articles',
-    'List published articles. Supports filtering by locale, category, featured status and full-text search.',
+    'List published articles. Supports filtering by locale, featured status and full-text search.',
     {
       locale: z.enum(['es', 'pt', 'en']).optional().describe('Language (default: es)'),
       page: z.number().int().positive().optional().describe('Page number (default: 1)'),
       pageSize: z.number().int().positive().max(50).optional().describe('Results per page (default: 9, max: 50)'),
-      category: z.string().optional().describe('Category slug to filter by'),
       featured: z.boolean().optional().describe('Only return featured articles'),
       q: z.string().optional().describe('Full-text search query'),
     },
@@ -37,25 +36,13 @@ export function createServer(): McpServer {
 
   server.tool(
     'get_article',
-    'Get a single published article by slug. Returns full content including markdown body, author, categories and localizations.',
+    'Get a single published article by slug. Returns full content including markdown body, author and localizations.',
     {
       slug: z.string().describe('Article slug'),
       locale: z.enum(['es', 'pt', 'en']).optional().describe('Language (default: es, falls back to es if not found)'),
     },
     async ({ slug, locale }) => {
       try { return ok(await cms.getArticle(slug, locale)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'list_categories',
-    'List published categories for a given locale.',
-    {
-      locale: z.enum(['es', 'pt', 'en']).optional().describe('Language (default: es)'),
-    },
-    async ({ locale }) => {
-      try { return ok(await cms.listCategories(locale)); }
       catch (e) { return err(e); }
     },
   );
@@ -69,7 +56,6 @@ export function createServer(): McpServer {
       locale: z.enum(['es', 'pt', 'en', 'all']).optional().describe('Language or "all"'),
       status: z.enum(['all', 'published', 'draft']).optional().describe('Filter by status (default: all)'),
       search: z.string().optional().describe('Search in title or slug'),
-      category: z.string().optional().describe('Category slug'),
       documentId: z.string().optional().describe('Group ID shared across translations'),
       page: z.number().int().positive().optional().describe('Page number (default: 1)'),
       pageSize: z.number().int().positive().max(100).optional().describe('Results per page (max: 100)'),
@@ -105,7 +91,6 @@ export function createServer(): McpServer {
       publishedAt: z.string().optional().describe('ISO date for publish date'),
       bgImageUrl: z.string().url().optional().describe('Cover image URL'),
       authorId: z.number().int().optional().describe('Author numeric ID'),
-      categoryIds: z.array(z.number().int()).optional().describe('Category numeric IDs'),
       genreIds: z.array(z.number().int()).optional().describe('Genre numeric IDs'),
       speciesIds: z.array(z.number().int()).optional().describe('Species numeric IDs'),
       typeIds: z.array(z.number().int()).optional().describe('Type numeric IDs'),
@@ -119,7 +104,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_update_article',
-    'Admin: update an existing article by numeric ID. Only provided fields are updated. Fields like title, slug, excerpt, content, hook, tags, publishedAt, bgImageUrl, authorId, categoryIds, genreIds, speciesIds, typeIds — all optional — are patched individually.',
+    'Admin: update an existing article by numeric ID. Only provided fields are updated. Fields like title, slug, excerpt, content, hook, tags, publishedAt, bgImageUrl, authorId, genreIds, speciesIds, typeIds — all optional — are patched individually.',
     {
       id: z.number().int().positive().describe('Article numeric ID'),
       title: z.string().optional().describe('New article title'),
@@ -132,7 +117,6 @@ export function createServer(): McpServer {
       publishedAt: z.string().optional().describe('ISO date to set publish date (nullify by omitting)'),
       bgImageUrl: z.string().url().optional().describe('New cover image URL'),
       authorId: z.number().int().optional().describe('New author numeric ID'),
-      categoryIds: z.array(z.number().int()).optional().describe('Replaces all categories'),
       genreIds: z.array(z.number().int()).optional().describe('Replaces all genres'),
       speciesIds: z.array(z.number().int()).optional().describe('Replaces all species'),
       typeIds: z.array(z.number().int()).optional().describe('Replaces all types'),
@@ -199,15 +183,7 @@ export function createServer(): McpServer {
     },
   );
 
-  server.tool(
-    'admin_list_categories',
-    'Admin: list all categories (all locales or filtered).',
-    { locale: z.enum(['es', 'pt', 'en', 'all']).optional().describe('Language or "all" (default: all)') },
-    async ({ locale }) => {
-      try { return ok(await cms.listAllCategories(locale)); }
-      catch (e) { return err(e); }
-    },
-  );
+  // ── SUBSCRIBERS ──────────────────────────────────────────────────────────────
 
   server.tool(
     'admin_list_subscribers',
@@ -260,50 +236,6 @@ export function createServer(): McpServer {
     },
   );
 
-  // ── CATEGORY ADMIN ───────────────────────────────────────────────────────────
-
-  server.tool(
-    'admin_create_category',
-    'Admin: create a new category. Use a Phosphor icon name for the icon field (e.g. "Code", "ChartBar", "Palette", "BookOpen", "Megaphone", "Star"). The full list of valid icon names: Article, BookOpen, Briefcase, ChartBar, ChartLine, Cloud, Code, Cpu, Cube, Desktop, DeviceMobile, Diamond, Gear, GearSix, Globe, GridFour, Heart, Lightbulb, Lightning, LockKey, MapPin, Megaphone, MonitorPlay, PaintBrush, Palette, PuzzlePiece, Rocket, ShieldCheck, Star, Storefront, Tag, TreeStructure, Users, Wrench.',
-    {
-      name: z.string().describe('Display name'),
-      slug: z.string().describe('URL slug (lowercase, hyphens)'),
-      locale: z.enum(['es', 'pt', 'en']).describe('Language'),
-      description: z.string().optional().describe('Short description'),
-      icon: z.string().optional().describe('Phosphor icon name (e.g. "Code", "ChartBar", "BookOpen")'),
-    },
-    async (args) => {
-      try { return ok(await cms.createCategory(args)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_update_category',
-    'Admin: update an existing category by numeric ID. Only provided fields are updated.',
-    {
-      id: z.number().int().positive().describe('Category numeric ID'),
-      name: z.string().optional().describe('New display name'),
-      slug: z.string().optional().describe('New URL slug'),
-      description: z.string().optional().describe('New description'),
-      icon: z.string().optional().describe('Phosphor icon name'),
-    },
-    async ({ id, ...data }) => {
-      try { return ok(await cms.updateCategory(id, data)); }
-      catch (e) { return err(e); }
-    },
-  );
-
-  server.tool(
-    'admin_delete_category',
-    'Admin: permanently delete a category by numeric ID.',
-    { id: z.number().int().positive().describe('Category numeric ID') },
-    async ({ id }) => {
-      try { await cms.deleteCategory(id); return ok({ deleted: true, id }); }
-      catch (e) { return err(e); }
-    },
-  );
-
   // ── TAXONOMY: GENRES ─────────────────────────────────────────────────────────
 
   server.tool(
@@ -314,6 +246,16 @@ export function createServer(): McpServer {
     },
     async ({ locale }) => {
       try { return ok(await cms.listGenres(locale)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_get_genre',
+    'Admin: get a single genre by numeric ID.',
+    { id: z.number().int().positive().describe('Genre numeric ID') },
+    async ({ id }) => {
+      try { return ok(await cms.getGenre(id)); }
       catch (e) { return err(e); }
     },
   );
@@ -375,6 +317,16 @@ export function createServer(): McpServer {
   );
 
   server.tool(
+    'admin_get_species',
+    'Admin: get a single species by numeric ID.',
+    { id: z.number().int().positive().describe('Species numeric ID') },
+    async ({ id }) => {
+      try { return ok(await cms.getSpecies(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
     'admin_create_species',
     'Admin: create a new species. Pass groupId to group translations together.',
     {
@@ -426,6 +378,16 @@ export function createServer(): McpServer {
     },
     async ({ locale }) => {
       try { return ok(await cms.listTypes(locale)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_get_type',
+    'Admin: get a single type by numeric ID.',
+    { id: z.number().int().positive().describe('Type numeric ID') },
+    async ({ id }) => {
+      try { return ok(await cms.getType(id)); }
       catch (e) { return err(e); }
     },
   );

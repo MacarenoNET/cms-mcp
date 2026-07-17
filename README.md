@@ -58,9 +58,8 @@ Cliente MCP (Copilot, Claude, Cursor)
 
 | Herramienta | Descripción |
 |-------------|-------------|
-| `list_articles` | Listar artículos publicados con filtros (locale, category, featured, search) |
+| `list_articles` | Listar artículos publicados con filtros (locale, featured, search) |
 | `get_article` | Obtener un artículo por slug + locale (con fallback a español) |
-| `list_categories` | Listar categorías por locale |
 
 ### 🔒 Admin (requiere `CMS_ADMIN_EMAIL` + `CMS_ADMIN_PASSWORD`)
 
