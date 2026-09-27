@@ -379,7 +379,6 @@ export interface CoverPayload {
   excerpt?: string;
   hook?: string;
   author?: string;
-  category?: string;
   genres?: string;
   species?: string;
   types?: string;

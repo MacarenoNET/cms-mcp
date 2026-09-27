@@ -460,7 +460,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_create_template',
-    'Admin: create a new cover template. The htmlContent and cssContent can use {title}, {hook}, {author}, {category}, {genres}, {species}, {types}, {date}, {readingTime}, {tags}, {bgImage}, {excerpt}, {siteName} placeholders. IMPORTANT: {title} supports inline markdown — **bold** and *italic* are converted to <strong> and <em> HTML tags. You MUST include CSS rules like ".title strong { color: YOUR_ACCENT_COLOR; }" in cssContent to style bold text, and ".title em { ... }" for italic text. Otherwise bold/italic will have no visible effect.',
+    'Admin: create a new cover template. The htmlContent and cssContent can use {title}, {hook}, {author}, {genres}, {species}, {types}, {date}, {readingTime}, {tags}, {bgImage}, {excerpt}, {siteName} placeholders. IMPORTANT: {title} supports inline markdown — **bold** and *italic* are converted to <strong> and <em> HTML tags. You MUST include CSS rules like ".title strong { color: YOUR_ACCENT_COLOR; }" in cssContent to style bold text, and ".title em { ... }" for italic text. Otherwise bold/italic will have no visible effect.',
     {
       name: z.string().describe('Template name (e.g. "OG Image Default")'),
       htmlContent: z.string().describe('HTML content with optional {placeholder} variables'),
@@ -477,7 +477,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_update_template',
-    'Admin: update an existing cover template by ID. Only provided fields are updated. Available placeholders for htmlContent/cssContent: {title}, {hook}, {author}, {category}, {genres}, {species}, {types}, {date}, {readingTime}, {tags}, {bgImage}, {excerpt}, {siteName}.',
+    'Admin: update an existing cover template by ID. Only provided fields are updated. Available placeholders for htmlContent/cssContent: {title}, {hook}, {author}, {genres}, {species}, {types}, {date}, {readingTime}, {tags}, {bgImage}, {excerpt}, {siteName}.',
     {
       id: z.number().int().positive().describe('Template numeric ID'),
       name: z.string().optional().describe('New template name'),
@@ -514,7 +514,6 @@ export function createServer(): McpServer {
       excerpt: z.string().optional().describe('Article excerpt/summary'),
       hook: z.string().optional().describe('Short punchy phrase for the cover'),
       author: z.string().optional().describe('Author name'),
-      category: z.string().optional().describe('Category name'),
       genres: z.string().optional().describe('Genres (comma-separated)'),
       species: z.string().optional().describe('Species (comma-separated)'),
       types: z.string().optional().describe('Types (comma-separated)'),
@@ -645,7 +644,6 @@ export function createServer(): McpServer {
       excerpt: z.string().optional().describe('Excerpt/summary text'),
       hook: z.string().optional().describe('Hook/punchy phrase'),
       author: z.string().optional().describe('Author name'),
-      category: z.string().optional().describe('Category name'),
       genres: z.string().optional().describe('Genres, comma-separated'),
       species: z.string().optional().describe('Species, comma-separated'),
       types: z.string().optional().describe('Types, comma-separated'),

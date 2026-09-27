@@ -70,13 +70,33 @@ Cliente MCP (Copilot, Claude, Cursor)
 | `admin_create_article` | Crear un artículo (o traducción vinculada por `documentId`) |
 | `admin_update_article` | Actualizar campos de un artículo por ID |
 | `admin_publish_article` | Publicar o despublicar por ID |
+| `admin_schedule_article` | Programar la publicación para una fecha futura |
+| `admin_unschedule_article` | Cancelar la publicación programada |
 | `admin_delete_article` | Eliminar permanentemente por ID |
 | `admin_list_authors` | Listar todos los autores |
-| `admin_list_categories` | Listar todas las categorías (todos los locales) |
+| `list_genres` / `list_species` / `list_types` | Listar taxonomías (todos los locales si se omite `locale`) |
+| `admin_get_genre` / `admin_get_species` / `admin_get_type` | Obtener una taxonomía por ID |
+| `admin_create_genre` / `admin_create_species` / `admin_create_type` | Crear una taxonomía |
+| `admin_update_genre` / `admin_update_species` / `admin_update_type` | Actualizar una taxonomía |
+| `admin_delete_genre` / `admin_delete_species` / `admin_delete_type` | Eliminar una taxonomía |
 | `admin_list_subscribers` | Listar suscriptores del newsletter |
 | `admin_likes_stats` | Estadísticas de likes (total + top artículos) |
-| `admin_generate_image` | Generar imagen con Gemini AI desde un prompt de texto |
-| `admin_delete_media` | Eliminar un archivo multimedia por ID (útil en flujos de aprobación) |
+| `admin_image_generate` | Generar imagen con Gemini AI desde un prompt de texto |
+| `admin_image_delete` | Eliminar un archivo multimedia por ID (útil en flujos de aprobación) |
+| `admin_list_templates` / `admin_get_template` | Consultar plantillas de portada |
+| `admin_create_template` / `admin_update_template` / `admin_delete_template` | Gestionar plantillas de portada |
+| `admin_compose_cover` | Componer una portada desde un CoverPayload + plantilla (Puppeteer) |
+| `admin_list_social_publications` / `admin_get_social_publication` | Consultar publicaciones en redes |
+| `admin_create_social_publication` / `admin_update_social_publication` | Gestionar publicaciones en redes |
+| `admin_publish_social_publication` / `admin_unpublish_social_publication` | Publicar o retirar una publicación social |
+| `admin_generate_social_image` / `admin_generate_social_copy` | Generar imagen o copy para una publicación social |
+| `admin_generate_copy_from_prompt` | Generar copy desde un prompt libre |
+| `admin_delete_social_publication` | Eliminar una publicación social |
+| `admin_list_social_prompts` / `admin_get_social_prompt` | Consultar prompts sociales |
+| `admin_create_social_prompt` / `admin_update_social_prompt` / `admin_delete_social_prompt` | Gestionar prompts sociales |
+| `admin_create_short_link` / `admin_update_short_link` / `admin_delete_short_link` | Gestionar enlaces cortos |
+| `admin_analytics_dashboard` / `admin_analytics_trending` | Panel y tendencias (GA4) |
+| `admin_analytics_sources` / `admin_analytics_audience` / `admin_analytics_article_stats` | Fuentes, audiencia y estadísticas por artículo (GA4) |
 
 ### 📤 Subida de imágenes (admin)
 
