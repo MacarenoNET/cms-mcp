@@ -803,14 +803,15 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_analytics_article_stats',
-    'Admin: get detailed GA4 stats for a single article (views over time, sources, totals). Provide the article path like "/article/my-article-slug".',
+    'Admin: get detailed GA4 stats for a single article (views over time, sources, totals). Provide the article path like "/es/my-article-slug" and, ideally, the hostname so views from the retired domains are not mixed in.',
     {
-      path: z.string().describe('Article path, e.g. "/article/my-slug"'),
+      path: z.string().describe('Article path, e.g. "/es/my-slug"'),
+      hostname: z.string().optional().describe('Restrict to one host, e.g. "www.macareno.net"'),
       start: z.string().optional().describe('Start date (default: 7daysAgo)'),
       end: z.string().optional().describe('End date (default: yesterday)'),
     },
     async (args) => {
-      try { return ok(await cms.getArticleAnalytics(args.path, args.start, args.end)); }
+      try { return ok(await cms.getArticleAnalytics(args.path, args.start, args.end, args.hostname)); }
       catch (e) { return err(e); }
     },
   );
@@ -819,9 +820,9 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_create_short_link',
-    'Admin: create a new short link. Receives a full destination URL and returns a 6-character short code. The short URL will be https://articles.macareno.net/{code}.',
+    'Admin: create a new short link. Receives a full destination URL and returns a 6-character short code. The short URL will be https://www.macareno.net/{code}.',
     {
-      url: z.string().url().describe('Full destination URL including any UTM parameters, e.g. https://articles.macareno.net/articles/28?utm_source=ig&utm_medium=social'),
+      url: z.string().url().describe('Full destination URL including any UTM parameters, e.g. https://www.macareno.net/es/docker-para-frontend?utm_source=ig&utm_medium=social'),
     },
     async ({ url }) => {
       try { return ok(await cms.createShortLink(url)); }

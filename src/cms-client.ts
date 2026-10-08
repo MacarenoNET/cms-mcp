@@ -420,8 +420,8 @@ export function getAnalyticsAudience(start?: string, end?: string) {
   return adminGet<{ devices: unknown[]; countries: unknown[] }>('/admin/analytics/audience', p);
 }
 
-export function getArticleAnalytics(articlePath: string, start?: string, end?: string) {
-  return adminPost<{ stats: unknown }>('/admin/analytics/article-stats', { path: articlePath, start, end });
+export function getArticleAnalytics(articlePath: string, start?: string, end?: string, hostname?: string) {
+  return adminPost<{ stats: unknown }>('/admin/analytics/article-stats', { path: articlePath, start, end, hostname });
 }
 
 // ── Short Links ──────────────────────────────────────────────────────────────
