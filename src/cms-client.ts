@@ -117,7 +117,7 @@ export function listArticles(params: {
   return publicGet<{ articles: unknown[]; total: number; pageCount: number }>('/articles', p);
 }
 
-export function getArticle(slug: string, locale = 'es') {
+export function getArticle(slug: string, locale = 'pt') {
   return publicGet<unknown>(`/articles/${slug}`, { locale });
 }
 

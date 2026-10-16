@@ -22,7 +22,7 @@ export function createServer(): McpServer {
     'list_articles',
     'List published articles. Supports filtering by locale, featured status and full-text search.',
     {
-      locale: z.enum(['es', 'pt', 'en']).optional().describe('Language (default: es)'),
+      locale: z.enum(['es', 'pt', 'en']).optional().describe('Language (default: pt)'),
       page: z.number().int().positive().optional().describe('Page number (default: 1)'),
       pageSize: z.number().int().positive().max(50).optional().describe('Results per page (default: 9, max: 50)'),
       featured: z.boolean().optional().describe('Only return featured articles'),
@@ -39,7 +39,7 @@ export function createServer(): McpServer {
     'Get a single published article by slug. Returns full content including markdown body, author and localizations.',
     {
       slug: z.string().describe('Article slug'),
-      locale: z.enum(['es', 'pt', 'en']).optional().describe('Language (default: es, falls back to es if not found)'),
+      locale: z.enum(['es', 'pt', 'en']).optional().describe('Language (default: pt, falls back to pt if not found)'),
     },
     async ({ slug, locale }) => {
       try { return ok(await cms.getArticle(slug, locale)); }
@@ -822,7 +822,7 @@ export function createServer(): McpServer {
     'admin_create_short_link',
     'Admin: create a new short link. Receives a full destination URL and returns a 6-character short code. The short URL will be https://www.macareno.net/{code}.',
     {
-      url: z.string().url().describe('Full destination URL including any UTM parameters, e.g. https://www.macareno.net/es/docker-para-frontend?utm_source=ig&utm_medium=social'),
+      url: z.string().url().describe('Full destination URL including any UTM parameters. Prefer the locale-less alias https://www.macareno.net/articles/{id} so the visitor lands in their own language, e.g. https://www.macareno.net/articles/42?utm_source=ig&utm_medium=social'),
     },
     async ({ url }) => {
       try { return ok(await cms.createShortLink(url)); }

@@ -16,6 +16,11 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Changed
 
+- El idioma por defecto de las tools pasa de `es` a `pt`: `list_articles`, `get_article`
+  (`src/cms-client.ts`) y el ejemplo de `admin_create_short_link`, que ahora propone el alias sin
+  idioma `https://www.macareno.net/articles/{id}` en vez de una URL con `/es/`. El sitio público
+  pasó a tener portugués como idioma por defecto y a resolver el idioma del visitante, así que el
+  destino del enlace no debe fijar uno.
 - Documentación (`README.md`): la tabla de tools de administración se reconstruyó contra el registro real
   del servidor. Corrige cuatro nombres inexistentes (`admin_list_categories`, `admin_generate_image`,
   `admin_delete_media` y la omisión de `admin_publish_article`) y añade las ~40 tools que faltaban
