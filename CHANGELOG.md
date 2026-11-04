@@ -7,6 +7,10 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- Herramientas de **reels**: `admin_reel_upload_url`, `admin_upsert_reel`, `admin_list_reels`, `admin_get_reel`,
+  `admin_reel_download_url`, `admin_update_reel_post` y `admin_delete_reel`.
 ### Removed
 
 - Campo `category` del tipo `CoverPayload` (`src/cms-client.ts`) y de los parámetros de las tools

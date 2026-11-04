@@ -525,3 +525,57 @@ export function updateSocialPrompt(id: number, data: { platform?: string; prompt
 export function deleteSocialPrompt(id: number) {
   return adminDelete(`/admin/social-prompts/${id}`);
 }
+
+// ── Reels ─────────────────────────────────────────────────────────────────────
+
+export interface ReelPostInput {
+  platform: 'INSTAGRAM' | 'YOUTUBE' | 'LINKEDIN';
+  title?: string | null;
+  copy: string;
+  hashtags?: string | null;
+  account?: string | null;
+  shortLinkId?: number | null;
+}
+
+export interface ReelVersionInput {
+  locale?: string;
+  title: string;
+  articleId?: number | null;
+  articleSlug?: string | null;
+  durationSec?: number | null;
+  script?: unknown;
+  notes?: string | null;
+  posts: ReelPostInput[];
+}
+
+export function listReels(params: { locale?: string; page?: number; pageSize?: number }) {
+  const q: Record<string, string> = {};
+  if (params.locale) q.locale = params.locale;
+  if (params.page) q.page = String(params.page);
+  if (params.pageSize) q.pageSize = String(params.pageSize);
+  return adminGet<unknown>('/admin/reels', q);
+}
+
+export function getReel(id: number) {
+  return adminGet<unknown>(`/admin/reels/${id}`);
+}
+
+export function createReelUploadUrl(data: { slug: string; locale?: string; kind: 'video' | 'cover' }) {
+  return adminPost<unknown>('/admin/reels/upload-url', data);
+}
+
+export function upsertReel(slug: string, data: { color?: string | null; version: ReelVersionInput }) {
+  return adminPut<unknown>(`/admin/reels/${encodeURIComponent(slug)}`, data);
+}
+
+export function getReelDownloadUrl(versionId: number, kind: 'video' | 'cover') {
+  return adminGet<unknown>(`/admin/reels/versions/${versionId}/download/${kind}`);
+}
+
+export function updateReelPost(id: number, data: Record<string, unknown>) {
+  return adminFetch<unknown>(`/admin/reels/posts/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+
+export function deleteReel(id: number) {
+  return adminDelete(`/admin/reels/${id}`);
+}

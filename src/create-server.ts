@@ -854,6 +854,122 @@ export function createServer(): McpServer {
     },
   );
 
+  // ── REELS ───────────────────────────────────────────────────────────────────
+  // Flujo de carga: 1) admin_reel_upload_url por cada archivo y subirlo con PUT a la URL firmada;
+  // 2) admin_upsert_reel con el título, los textos por red y los enlaces cortos.
+
+  server.tool(
+    'admin_reel_upload_url',
+    'Admin: get a presigned PUT URL to upload a reel file (mp4 video or png cover) straight to the private reels bucket. Upload the file with an HTTP PUT to uploadUrl using the returned headers (Content-Type), THEN call admin_upsert_reel for that slug and locale (it confirms the files exist). URL expires in 15 minutes.',
+    {
+      slug: z.string().describe('Reel id, lowercase with hyphens (same as the editor-reels folder name)'),
+      locale: z.enum(['es', 'pt', 'en']).optional().describe('Language of this video (default: es). Each language is its own video.'),
+      kind: z.enum(['video', 'cover']).describe('video = the mp4, cover = portada.png'),
+    },
+    async (args) => {
+      try { return ok(await cms.createReelUploadUrl(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_upsert_reel',
+    "Admin: create or update a reel and ONE language version of it, with the metadata for each social network (Instagram, YouTube, LinkedIn). Re-running for the same slug+locale updates texts but keeps each post's status and published URL. Call after uploading the files with admin_reel_upload_url.",
+    {
+      slug: z.string().describe('Reel id (lowercase, hyphens)'),
+      color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().describe('Primary color of the reel'),
+      locale: z.enum(['es', 'pt', 'en']).optional().describe('Language of this version (default: es)'),
+      title: z.string().describe('Cover title / name of the reel in this language'),
+      articleSlug: z.string().optional().describe('Slug of the article in this same locale (links the reel to it)'),
+      articleId: z.number().int().positive().optional().describe('Article id (alternative to articleSlug)'),
+      durationSec: z.number().positive().optional().describe('Video duration in seconds'),
+      script: z.any().optional().describe('The guion.json used to produce the video'),
+      notes: z.string().optional().describe('"Antes de publicar" notes for the human who publishes'),
+      posts: z.array(z.object({
+        platform: z.enum(['INSTAGRAM', 'YOUTUBE', 'LINKEDIN']),
+        title: z.string().optional().describe('YouTube title only'),
+        copy: z.string().describe('Caption / description text WITHOUT the hashtags'),
+        hashtags: z.string().optional().describe('Hashtags line, e.g. "#IA #MacarenoNet"'),
+        account: z.string().optional().describe('Destination account, if there are several per language'),
+        shortLinkId: z.number().int().positive().optional().describe("Id of this network's short link (admin_create_short_link)"),
+      })).min(1).describe('One entry per social network'),
+    },
+    async ({ slug, color, locale, title, articleSlug, articleId, durationSec, script, notes, posts }) => {
+      try {
+        return ok(await cms.upsertReel(slug, {
+          color,
+          version: { locale, title, articleSlug, articleId, durationSec, script, notes, posts },
+        }));
+      } catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_list_reels',
+    'Admin: list reels with their language versions and the per-network posts (status, short link, published URL).',
+    {
+      locale: z.enum(['es', 'pt', 'en']).optional().describe('Only reels that have a version in this language'),
+      page: z.number().int().positive().optional(),
+      pageSize: z.number().int().positive().max(100).optional(),
+    },
+    async (args) => {
+      try { return ok(await cms.listReels(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_get_reel',
+    'Admin: get one reel by numeric id with all versions and posts.',
+    { id: z.number().int().positive() },
+    async ({ id }) => {
+      try { return ok(await cms.getReel(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_reel_download_url',
+    'Admin: get a temporary (10 min) download URL for the video or cover of a reel version.',
+    {
+      versionId: z.number().int().positive().describe('ReelVersion id (from admin_get_reel)'),
+      kind: z.enum(['video', 'cover']),
+    },
+    async ({ versionId, kind }) => {
+      try { return ok(await cms.getReelDownloadUrl(versionId, kind)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_update_reel_post',
+    'Admin: update one network post of a reel: mark it PUBLISHED (with its external URL), back to READY, or edit its text.',
+    {
+      id: z.number().int().positive().describe('ReelPost id'),
+      status: z.enum(['DRAFT', 'READY', 'PUBLISHED']).optional(),
+      externalUrl: z.string().url().nullable().optional().describe('URL of the published post on the network'),
+      publishedAt: z.string().nullable().optional().describe('ISO date; defaults to now when marking PUBLISHED'),
+      account: z.string().nullable().optional(),
+      title: z.string().nullable().optional(),
+      copy: z.string().optional(),
+      hashtags: z.string().nullable().optional(),
+    },
+    async ({ id, ...rest }) => {
+      try { return ok(await cms.updateReelPost(id, rest)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_delete_reel',
+    'Admin: permanently delete a reel, all its language versions, posts and stored files.',
+    { id: z.number().int().positive() },
+    async ({ id }) => {
+      try { await cms.deleteReel(id); return ok({ deleted: true, id }); }
+      catch (e) { return err(e); }
+    },
+  );
+
   // ── SOCIAL PUBLICATIONS (new tools defined above after compose_cover) ──────
   // New tools: admin_list_social_publications, admin_get_social_publication,
   // admin_create_social_publication, admin_update_social_publication,
