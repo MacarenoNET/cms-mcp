@@ -4,12 +4,14 @@
 // Ej:  node mcp.mjs admin_list_templates
 //      node mcp.mjs get_article '{"slug":"ia-salio-mas-cara","locale":"es"}'
 
-const MCP_URL = 'https://mcp.macareno.net/mcp';
+const MCP_URL = process.env.MCP_URL ?? 'https://mcp.macareno.net/mcp';
+// El MCP exige MCP_AUTH_TOKEN (Bearer). Defínelo en el entorno antes de usar este script.
+const TOKEN = process.env.MCP_AUTH_TOKEN ?? '';
 
 async function call(tool, args = {}) {
     const res = await fetch(MCP_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream', ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}) },
         body: JSON.stringify({ jsonrpc: '2.0', method: 'tools/call', id: '1', params: { name: tool, arguments: args } })
     });
     const text = await res.text();

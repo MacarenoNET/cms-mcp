@@ -266,13 +266,22 @@ Usa `StreamableHTTPServerTransport` del MCP SDK. Una sesión por request (statel
 
 ---
 
-## ⚠️ Seguridad: el endpoint HTTP no tiene autenticación
+## 🔐 Autenticación del endpoint HTTP
 
-`src/http.ts` atiende `POST /mcp` sin pedir token, Origin ni IP, y el servidor se autentica contra `cms-api`
-como administrador. En producción (`https://mcp.macareno.net/mcp`) **cualquiera que conozca la URL puede
-ejecutar las herramientas `admin_*`** (listar suscriptores, borrar artículos, publicar en LinkedIn, borrar
-reels). Está registrado como hallazgo crítico en `cms-docs/docs/ANALISIS-Y-EVOLUCION-2026-11.md`. Hasta
-que se corrija (Bearer token fijo en `http.ts` o autenticación en Traefik), no difundas la URL.
+`POST /mcp` exige un secreto (`MCP_AUTH_TOKEN`, mínimo 32 caracteres): el servidor actúa como administrador del
+CMS, así que sin él no responde. Si la variable falta, **el servidor no arranca**. Se acepta de dos formas:
+
+| Forma | Uso |
+|---|---|
+| Cabecera `Authorization: Bearer <MCP_AUTH_TOKEN>` | Clientes que permiten cabeceras (`mcp.mjs`, scripts, `editor-reels`) |
+| Secreto en la ruta `https://mcp.macareno.net/mcp/<MCP_AUTH_TOKEN>` | Conectores de Claude que solo piden una URL |
+
+- `/health` sigue abierto (no expone datos).
+- Las peticiones de navegador (con cabecera `Origin`) solo se aceptan desde `MCP_ALLOWED_ORIGINS`
+  (por defecto `https://claude.ai`).
+- Generar un token: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+- En el VPS va en `/docker/cms/.env` y en la sección `environment:` de `cms-mcp` del `docker-compose.yml`.
+- Para rotarlo: cambiar el valor en el VPS, recrear `cms-mcp` y actualizar el conector de Claude y `editor-reels/.env`.
 
 ## 🐳 Docker y producción
 
