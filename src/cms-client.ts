@@ -59,6 +59,7 @@ async function adminFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
+        'x-actor': 'mcp', // la auditoría del CMS registra que la acción vino del MCP
         ...(init.headers as Record<string, string> ?? {}),
       },
     });
@@ -586,4 +587,54 @@ export function updateReelPost(id: number, data: Record<string, unknown>) {
 
 export function deleteReel(id: number) {
   return adminDelete(`/admin/reels/${id}`);
+}
+
+
+// ── Fases 2 y 3: clics, historial, traducción, medios, auditoría, suscriptores, reels a LinkedIn ─────
+
+export function getShortLinkStats(days?: number) {
+  return adminGet<unknown>('/admin/analytics/short-links', days ? { days: String(days) } : undefined);
+}
+
+export function listArticleRevisions(id: number) {
+  return adminGet<unknown>(`/admin/articles/${id}/revisions`);
+}
+
+export function getArticleRevision(id: number, revId: number) {
+  return adminGet<unknown>(`/admin/articles/${id}/revisions/${revId}`);
+}
+
+export function restoreArticleRevision(id: number, revId: number) {
+  return adminPost<unknown>(`/admin/articles/${id}/revisions/${revId}/restore`, {});
+}
+
+export function translateArticle(id: number, locale: string) {
+  return adminPost<unknown>(`/admin/articles/${id}/translate`, { locale });
+}
+
+export function listMedia(params: { page?: number; pageSize?: number; q?: string; unused?: boolean }) {
+  const q: Record<string, string> = {};
+  if (params.page) q.page = String(params.page);
+  if (params.pageSize) q.pageSize = String(params.pageSize);
+  if (params.q) q.q = params.q;
+  if (params.unused) q.unused = 'true';
+  return adminGet<unknown>('/admin/media', q);
+}
+
+export function purgeOrphanMedia(data: { dryRun?: boolean; olderThanDays?: number }) {
+  return adminPost<unknown>('/admin/media/purge-orphans', data);
+}
+
+export function listAudit(params: { page?: number; pageSize?: number; actor?: string; entity?: string; entityId?: string }) {
+  const q: Record<string, string> = {};
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== '') q[k] = String(v);
+  return adminGet<unknown>('/admin/audit', q);
+}
+
+export function deleteSubscriber(id: number) {
+  return adminDelete(`/admin/subscribers/${id}`);
+}
+
+export function publishReelPostToLinkedIn(id: number) {
+  return adminPost<unknown>(`/admin/reels/posts/${id}/publish-linkedin`, {});
 }

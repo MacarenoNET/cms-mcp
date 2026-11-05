@@ -993,6 +993,125 @@ export function createServer(): McpServer {
     },
   );
 
+  // ── FASES 2 y 3 ─────────────────────────────────────────────────────────────
+
+  server.tool(
+    'admin_short_link_stats',
+    'Admin: click statistics of the short links (the ones used in social posts and reels). Returns totals, clicks per day, per source (instagram/linkedin/youtube...) and per campaign (reel-<id>), and the top links. Bots and link previews are not counted.',
+    { days: z.number().int().min(1).max(365).optional().describe('Range in days (default 30)') },
+    async ({ days }) => {
+      try { return ok(await cms.getShortLinkStats(days)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_list_article_revisions',
+    'Admin: list the saved previous versions of an article (the CMS saves one before every content edit, last 50). Newest first.',
+    { id: z.number().int().positive().describe('Article numeric ID') },
+    async ({ id }) => {
+      try { return ok(await cms.listArticleRevisions(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_get_article_revision',
+    'Admin: get the full content of one saved version of an article.',
+    { id: z.number().int().positive().describe('Article numeric ID'), revisionId: z.number().int().positive() },
+    async ({ id, revisionId }) => {
+      try { return ok(await cms.getArticleRevision(id, revisionId)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_restore_article_revision',
+    'Admin: restore an article to a saved version. The current state is saved first as a new version, so it can be undone. Does not change published/draft status.',
+    { id: z.number().int().positive().describe('Article numeric ID'), revisionId: z.number().int().positive() },
+    async ({ id, revisionId }) => {
+      try { return ok(await cms.restoreArticleRevision(id, revisionId)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_translate_article',
+    'Admin: create a DRAFT translation of an article in another language (es, pt, en) using Gemini. Same documentId, translated title/excerpt/hook/content/SEO, same taxonomies, author and image. Fails with 409 if that document already has a version in that language. The draft must be reviewed by a person before publishing.',
+    {
+      id: z.number().int().positive().describe('Numeric ID of the SOURCE article'),
+      locale: z.enum(['es', 'pt', 'en']).describe('Target language'),
+    },
+    async ({ id, locale }) => {
+      try { return ok(await cms.translateArticle(id, locale)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_list_media',
+    'Admin: list uploaded media files with the number of articles and social posts that use each one.',
+    {
+      page: z.number().int().positive().optional(),
+      pageSize: z.number().int().positive().max(100).optional(),
+      q: z.string().optional().describe('Search by file name'),
+      unused: z.boolean().optional().describe('Only files that nothing uses'),
+    },
+    async (args) => {
+      try { return ok(await cms.listMedia(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_purge_orphan_media',
+    'Admin: find (dryRun true, the default) or DELETE (dryRun false) uploaded files that no article or social post uses and that are older than olderThanDays (default 7). Always run with dryRun true first and show the numbers before deleting.',
+    {
+      dryRun: z.boolean().optional().describe('Default true: only report'),
+      olderThanDays: z.number().int().min(1).max(3650).optional(),
+    },
+    async (args) => {
+      try { return ok(await cms.purgeOrphanMedia(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_list_audit',
+    'Admin: audit log of who changed what in the CMS (every POST/PUT/PATCH/DELETE under /admin): actor (email or "mcp"), entity, id, HTTP status, time.',
+    {
+      page: z.number().int().positive().optional(),
+      pageSize: z.number().int().positive().max(200).optional(),
+      actor: z.string().optional(),
+      entity: z.string().optional().describe('e.g. articles, social-publications, reels'),
+      entityId: z.string().optional(),
+    },
+    async (args) => {
+      try { return ok(await cms.listAudit(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_delete_subscriber',
+    'Admin: permanently delete a newsletter subscriber and their likes (right to be forgotten). Cannot be undone.',
+    { id: z.number().int().positive().describe('Subscriber ID') },
+    async ({ id }) => {
+      try { await cms.deleteSubscriber(id); return ok({ deleted: true, id }); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_publish_reel_to_linkedin',
+    'Admin: upload the video of a reel to LinkedIn and publish it RIGHT NOW with the reel post text. Only for the LINKEDIN post of a reel version that has its video uploaded. Cannot be undone from the CMS and is never retried automatically. Instagram is published manually and YouTube is not supported.',
+    { postId: z.number().int().positive().describe('ReelPost ID (platform LINKEDIN), from admin_get_reel') },
+    async ({ postId }) => {
+      try { return ok(await cms.publishReelPostToLinkedIn(postId)); }
+      catch (e) { return err(e); }
+    },
+  );
+
   // ── SOCIAL PUBLICATIONS (new tools defined above after compose_cover) ──────
   // New tools: admin_list_social_publications, admin_get_social_publication,
   // admin_create_social_publication, admin_update_social_publication,
