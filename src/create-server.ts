@@ -114,10 +114,10 @@ export function createServer(): McpServer {
       hook: z.string().optional().describe('New punchy phrase for the cover image'),
       featured: z.boolean().optional().describe('Toggle featured status'),
       tags: z.array(z.string()).optional().describe('Replaces all tags'),
-      publishedAt: z.string().optional().describe('ISO date to set publish date (nullify by omitting)'),
+      publishedAt: z.string().optional().describe('ISO date to set the publish date'),
       bgImageUrl: z.string().url().optional().describe('New cover image URL'),
       authorId: z.number().int().optional().describe('New author numeric ID'),
-      genreIds: z.array(z.number().int()).optional().describe('Replaces all genres'),
+      genreIds: z.array(z.number().int()).optional().describe('Replaces all genres (an empty array [] clears them)'),
       speciesIds: z.array(z.number().int()).optional().describe('Replaces all species'),
       typeIds: z.array(z.number().int()).optional().describe('Replaces all types'),
     },
@@ -579,7 +579,7 @@ export function createServer(): McpServer {
     'Admin: list all social publications with optional filters (platform, status, locale, articleId).',
     {
       platform: z.string().optional().describe('Filter by platform (LINKEDIN, TWITTER, INSTAGRAM_SQUARE, etc.)'),
-      status: z.string().optional().describe('Filter by status (PENDING, PUBLISHED, FAILED)'),
+      status: z.string().optional().describe('Filter by status (PENDING = draft, SCHEDULED, PUBLISHING, PUBLISHED, FAILED)'),
       locale: z.string().optional().describe('Filter by locale'),
       articleId: z.number().int().optional().describe('Filter by article ID'),
       page: z.number().int().positive().optional().describe('Page number (default: 1)'),
@@ -622,7 +622,7 @@ export function createServer(): McpServer {
     {
       id: z.number().int().positive().describe('Publication ID'),
       copy: z.string().optional().describe('Post text content'),
-      status: z.string().optional().describe('Status (PENDING, PUBLISHED, FAILED)'),
+      status: z.string().optional().describe('Status to set manually (PENDING, PUBLISHED, FAILED). Use admin_schedule_social_publication to schedule; SCHEDULED/PUBLISHING cannot be set here'),
       publishedAt: z.string().optional().describe('ISO date string for scheduling/publishing'),
       imageUrl: z.string().optional().describe('Cover image URL from compose_cover'),
       imageKey: z.string().optional().describe('Cover image storage key'),
@@ -694,10 +694,10 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_publish_social_publication',
-    'Admin: publish a social publication immediately or schedule it.',
+    'Admin: publish a social publication to its network RIGHT NOW (LinkedIn, Instagram, X). It cannot be undone from the CMS. To publish at a future time use admin_schedule_social_publication instead. Fails with 409 if it is already published or being published. If a future publishedAt is passed it is treated as a schedule, not as an immediate publish.',
     {
       id: z.number().int().positive().describe('Publication ID'),
-      publishedAt: z.string().optional().describe('Optional ISO date for scheduled publishing'),
+      publishedAt: z.string().optional().describe('Leave empty to publish now. A future ISO date schedules it (same as admin_schedule_social_publication).'),
     },
     async ({ id, publishedAt }) => {
       try { return ok(await cms.publishSocialPublication(id, publishedAt)); }
@@ -706,8 +706,31 @@ export function createServer(): McpServer {
   );
 
   server.tool(
+    'admin_schedule_social_publication',
+    'Admin: approve and schedule a social publication. Status becomes SCHEDULED and the cron publishes it when publishedAt arrives (retrying safe failures up to 3 times and alerting if it finally fails). Requires copy and image to be set and a FUTURE date. Only LinkedIn, Instagram and X can be scheduled. Drafts (PENDING) are never published automatically.',
+    {
+      id: z.number().int().positive().describe('Publication ID'),
+      publishedAt: z.string().describe('ISO date-time in the future (e.g. 2026-11-10T13:00:00Z)'),
+    },
+    async ({ id, publishedAt }) => {
+      try { return ok(await cms.scheduleSocialPublication(id, publishedAt)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_unschedule_social_publication',
+    'Admin: cancel the schedule of a SCHEDULED (or FAILED) social publication and return it to PENDING draft. Nothing is published.',
+    { id: z.number().int().positive().describe('Publication ID') },
+    async ({ id }) => {
+      try { return ok(await cms.unscheduleSocialPublication(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
     'admin_unpublish_social_publication',
-    'Admin: revert a published social publication back to PENDING draft.',
+    'Admin: set a PUBLISHED social publication back to PENDING draft IN THE CMS ONLY. The post stays live on the social network, and publishing it again would duplicate it.',
     { id: z.number().int().positive().describe('Publication ID') },
     async ({ id }) => {
       try { return ok(await cms.unpublishSocialPublication(id)); }

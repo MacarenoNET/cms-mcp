@@ -494,6 +494,14 @@ export function publishSocialPublication(id: number, publishedAt?: string) {
   return adminPost<unknown>(`/admin/social-publications/${id}/publish`, { publishedAt });
 }
 
+export function scheduleSocialPublication(id: number, publishedAt: string) {
+  return adminPost<unknown>(`/admin/social-publications/${id}/schedule`, { publishedAt });
+}
+
+export function unscheduleSocialPublication(id: number) {
+  return adminPost<unknown>(`/admin/social-publications/${id}/unschedule`, {});
+}
+
 export function unpublishSocialPublication(id: number) {
   return adminPost<unknown>(`/admin/social-publications/${id}/unpublish`, {});
 }
