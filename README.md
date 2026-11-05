@@ -266,6 +266,14 @@ Usa `StreamableHTTPServerTransport` del MCP SDK. Una sesión por request (statel
 
 ---
 
+## ⚠️ Seguridad: el endpoint HTTP no tiene autenticación
+
+`src/http.ts` atiende `POST /mcp` sin pedir token, Origin ni IP, y el servidor se autentica contra `cms-api`
+como administrador. En producción (`https://mcp.macareno.net/mcp`) **cualquiera que conozca la URL puede
+ejecutar las herramientas `admin_*`** (listar suscriptores, borrar artículos, publicar en LinkedIn, borrar
+reels). Está registrado como hallazgo crítico en `cms-docs/docs/ANALISIS-Y-EVOLUCION-2026-11.md`. Hasta
+que se corrija (Bearer token fijo en `http.ts` o autenticación en Traefik), no difundas la URL.
+
 ## 🐳 Docker y producción
 
 ### Dockerfile — Multi-stage
@@ -295,7 +303,7 @@ docker run -p 3020:3020 \
 | Proyecto | Descripción |
 |----------|-------------|
 | [cms-api](https://github.com/MacarenoNET/cms-api) | Backend NestJS + Prisma + PostgreSQL |
-| [cms-web](https://github.com/MacarenoNET/cms-web) | Blog público (Next.js) |
+| [corporate](https://github.com/MacarenoNET/corporate) | Sitio público: corporativo + blog (Next.js; reemplazó a `cms-web`) |
 | [cms-admin](https://github.com/MacarenoNET/cms-admin) | Panel de administración (Next.js) |
 | [cms-docs](https://github.com/MacarenoNET/cms-docs) | Documentación y skills del equipo |
 
