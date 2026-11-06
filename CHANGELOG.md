@@ -7,6 +7,19 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added — 2026-11-06
+
+- **17 herramientas de posts y cuentas**: `admin_list_posts`, `admin_get_post`, `admin_create_post`, `admin_update_post`,
+  `admin_delete_post`, `admin_schedule_post`, `admin_unschedule_post`, `admin_publish_post`, `admin_mark_post_published`,
+  `admin_unpublish_post`, `admin_generate_post_image`, `admin_generate_post_copy`, `admin_posts_capabilities`,
+  `admin_posts_scheduler_status`, `admin_list_social_accounts`, `admin_test_social_account` y
+  `admin_set_default_social_account`. Los tokens de las redes no se cargan por el MCP: se guardan en el admin.
+
+### Deprecated — 2026-11-06
+
+- Las 13 herramientas de `social_publication` y de reels de LinkedIn (por ejemplo `admin_create_social_publication`)
+  quedan marcadas `[DEPRECATED, use …]`; siguen funcionando mientras exista la capa de compatibilidad.
+
 ### Added
 
 - Herramientas de **reels**: `admin_reel_upload_url`, `admin_upsert_reel`, `admin_list_reels`, `admin_get_reel`,
