@@ -576,7 +576,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_list_social_publications',
-    'Admin: list all social publications with optional filters (platform, status, locale, articleId).',
+    '[DEPRECATED, use admin_list_posts] Admin: list all social publications with optional filters (platform, status, locale, articleId).',
     {
       platform: z.string().optional().describe('Filter by platform (LINKEDIN, TWITTER, INSTAGRAM_SQUARE, etc.)'),
       status: z.string().optional().describe('Filter by status (PENDING = draft, SCHEDULED, PUBLISHING, PUBLISHED, FAILED)'),
@@ -593,7 +593,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_get_social_publication',
-    'Admin: get a single social publication by ID. Returns full details including platform, status, copy, imageUrl, publishedAt, locale, and linked article info.',
+    '[DEPRECATED, use admin_get_post] Admin: get a single social publication by ID. Returns full details including platform, status, copy, imageUrl, publishedAt, locale, and linked article info.',
     { id: z.number().int().positive().describe('Social publication numeric ID') },
     async ({ id }) => {
       try { return ok(await cms.getSocialPublication(id)); }
@@ -603,7 +603,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_create_social_publication',
-    'Admin: create a new social publication. ArticleId is optional — standalone posts (marketing, ads) are supported. After creation, use admin_update_social_publication to set copy, status, date and image.',
+    '[DEPRECATED, use admin_create_post] Admin: create a new social publication. ArticleId is optional — standalone posts (marketing, ads) are supported. After creation, use admin_update_social_publication to set copy, status, date and image.',
     {
       platform: z.string().describe('Platform (LINKEDIN, TWITTER, INSTAGRAM_SQUARE, INSTAGRAM_PORTRAIT, INSTAGRAM_STORY, FACEBOOK, OG_IMAGE)'),
       locale: z.string().describe('Language (es, pt, en)'),
@@ -618,7 +618,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_update_social_publication',
-    'Admin: update an existing social publication by ID. Only provided fields are updated. Supports copy, status, publishedAt, imageUrl/imageKey, templateId, and shortLinkId.',
+    '[DEPRECATED, use admin_update_post] Admin: update an existing social publication by ID. Only provided fields are updated. Supports copy, status, publishedAt, imageUrl/imageKey, templateId, and shortLinkId.',
     {
       id: z.number().int().positive().describe('Publication ID'),
       copy: z.string().optional().describe('Post text content'),
@@ -637,7 +637,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_generate_social_image',
-    'Admin: generate a cover image for a social publication. If the post has an articleId, it resolves article data automatically. For standalone posts, pass a CoverPayload (title, excerpt, hook, etc.) to generate the image from scratch without an article.',
+    '[DEPRECATED, use admin_generate_post_image] Admin: generate a cover image for a social publication. If the post has an articleId, it resolves article data automatically. For standalone posts, pass a CoverPayload (title, excerpt, hook, etc.) to generate the image from scratch without an article.',
     {
       id: z.number().int().positive().describe('Publication ID'),
       title: z.string().optional().describe('Title text (supports **bold** markdown)'),
@@ -665,7 +665,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_generate_social_copy',
-    'Admin: generate AI copy text for a social publication using the linked article data and platform prompt template.',
+    '[DEPRECATED, use admin_generate_post_copy] Admin: generate AI copy text for a social publication using the linked article data and platform prompt template.',
     { id: z.number().int().positive().describe('Publication ID') },
     async ({ id }) => {
       try { return ok(await cms.generateSocialCopy(id)); }
@@ -694,7 +694,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_publish_social_publication',
-    'Admin: publish a social publication to its network RIGHT NOW (LinkedIn, Instagram, X). It cannot be undone from the CMS. To publish at a future time use admin_schedule_social_publication instead. Fails with 409 if it is already published or being published. If a future publishedAt is passed it is treated as a schedule, not as an immediate publish.',
+    '[DEPRECATED, use admin_publish_post] Admin: publish a social publication to its network RIGHT NOW (LinkedIn, Instagram, X). It cannot be undone from the CMS. To publish at a future time use admin_schedule_social_publication instead. Fails with 409 if it is already published or being published. If a future publishedAt is passed it is treated as a schedule, not as an immediate publish.',
     {
       id: z.number().int().positive().describe('Publication ID'),
       publishedAt: z.string().optional().describe('Leave empty to publish now. A future ISO date schedules it (same as admin_schedule_social_publication).'),
@@ -707,7 +707,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_schedule_social_publication',
-    'Admin: approve and schedule a social publication. Status becomes SCHEDULED and the cron publishes it when publishedAt arrives (retrying safe failures up to 3 times and alerting if it finally fails). Requires copy and image to be set and a FUTURE date. Only LinkedIn, Instagram and X can be scheduled. Drafts (PENDING) are never published automatically.',
+    '[DEPRECATED, use admin_schedule_post] Admin: approve and schedule a social publication. Status becomes SCHEDULED and the cron publishes it when publishedAt arrives (retrying safe failures up to 3 times and alerting if it finally fails). Requires copy and image to be set and a FUTURE date. Only LinkedIn, Instagram and X can be scheduled. Drafts (PENDING) are never published automatically.',
     {
       id: z.number().int().positive().describe('Publication ID'),
       publishedAt: z.string().describe('ISO date-time in the future (e.g. 2026-11-10T13:00:00Z)'),
@@ -720,7 +720,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_unschedule_social_publication',
-    'Admin: cancel the schedule of a SCHEDULED (or FAILED) social publication and return it to PENDING draft. Nothing is published.',
+    '[DEPRECATED, use admin_unschedule_post] Admin: cancel the schedule of a SCHEDULED (or FAILED) social publication and return it to PENDING draft. Nothing is published.',
     { id: z.number().int().positive().describe('Publication ID') },
     async ({ id }) => {
       try { return ok(await cms.unscheduleSocialPublication(id)); }
@@ -730,7 +730,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_unpublish_social_publication',
-    'Admin: set a PUBLISHED social publication back to PENDING draft IN THE CMS ONLY. The post stays live on the social network, and publishing it again would duplicate it.',
+    '[DEPRECATED, use admin_unpublish_post] Admin: set a PUBLISHED social publication back to PENDING draft IN THE CMS ONLY. The post stays live on the social network, and publishing it again would duplicate it.',
     { id: z.number().int().positive().describe('Publication ID') },
     async ({ id }) => {
       try { return ok(await cms.unpublishSocialPublication(id)); }
@@ -740,7 +740,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_delete_social_publication',
-    'Admin: permanently delete a social publication by ID.',
+    '[DEPRECATED, use admin_delete_post] Admin: permanently delete a social publication by ID.',
     { id: z.number().int().positive().describe('Publication ID') },
     async ({ id }) => {
       try { await cms.deleteSocialPublication(id); return ok({ deleted: true, id }); }
@@ -749,6 +749,243 @@ export function createServer(): McpServer {
   );
 
   // ── Social Prompts ─────────────────────────────────────────────────────────
+
+  // ── Posts unificados (imagen y video) ─────────────────────────────────────────
+  // Un Post es la publicación de una imagen (type IMAGE) o de un video (type VIDEO) en una red. Reemplaza a las herramientas
+  // admin_*_social_publication y admin_update_reel_post / admin_publish_reel_to_linkedin, que quedan como obsoletas.
+
+  server.tool(
+    'admin_list_posts',
+    'Admin: list posts (an image or a video published on a social network). Filters: type (IMAGE | VIDEO), network (LINKEDIN, TWITTER, INSTAGRAM, YOUTUBE, FACEBOOK, WEB), format, status (DRAFT, SCHEDULED, PUBLISHING, PUBLISHED, FAILED), locale, articleId. Each post has scheduledAt (when it should go out) and publishedAt (when it did).',
+    {
+      type: z.enum(['IMAGE', 'VIDEO']).optional().describe('IMAGE = social post with an image; VIDEO = reel'),
+      network: z.string().optional().describe('LINKEDIN, TWITTER, INSTAGRAM, YOUTUBE, FACEBOOK, WEB'),
+      format: z.string().optional().describe('FEED, SQUARE, PORTRAIT, STORY, REEL, OG'),
+      status: z.string().optional().describe('DRAFT, SCHEDULED, PUBLISHING, PUBLISHED, FAILED'),
+      locale: z.string().optional().describe('es, pt, en'),
+      articleId: z.number().int().optional().describe('Filter by article ID'),
+      page: z.number().int().positive().optional().describe('Page number (default: 1)'),
+      pageSize: z.number().int().positive().max(200).optional().describe('Results per page (max: 200)'),
+    },
+    async (args) => {
+      try { return ok(await cms.listPosts(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_get_post',
+    'Admin: get one post by ID with its article, template, short link, account (never credentials) and, for videos, the reel version.',
+    { id: z.number().int().positive().describe('Post ID') },
+    async ({ id }) => {
+      try { return ok(await cms.getPost(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_create_post',
+    'Admin: create a post as a DRAFT (nothing is published until it is scheduled or published). type IMAGE needs an image later (admin_generate_post_image or imageUrl); type VIDEO needs reelVersionId (the reel is created with admin_upsert_reel + admin_reel_upload_url). One video post per reel version and network. Instagram, YouTube and Facebook are published manually.',
+    {
+      type: z.enum(['IMAGE', 'VIDEO']).describe('IMAGE or VIDEO'),
+      network: z.string().describe('LINKEDIN, TWITTER, INSTAGRAM, YOUTUBE, FACEBOOK, WEB'),
+      locale: z.string().describe('es, pt, en (a video post takes the locale of its reel version)'),
+      format: z.string().optional().describe('FEED (default for images), SQUARE, PORTRAIT, STORY, REEL (default for videos), OG'),
+      copy: z.string().optional().describe('Post text'),
+      title: z.string().optional().describe('YouTube title'),
+      hashtags: z.string().optional().describe('Hashtags (videos)'),
+      articleId: z.number().int().optional().describe('Article to link (optional)'),
+      templateId: z.number().int().optional().describe('Social template for the image (type IMAGE)'),
+      reelVersionId: z.number().int().optional().describe('Reel version (type VIDEO, required)'),
+      imageUrl: z.string().optional().describe('Existing image URL (type IMAGE)'),
+      shortLinkId: z.number().int().optional().describe('Short link to include'),
+      accountId: z.number().int().optional().describe('Specific social account; omit to use the default account of the network'),
+    },
+    async (args) => {
+      try { return ok(await cms.createPost(args)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_update_post',
+    'Admin: edit a post (copy, title, hashtags, template, short link, account, image, scheduledAt). status can only be set to DRAFT or FAILED; use the schedule / publish / mark_published tools for the other states. Cannot edit a post that is being published.',
+    {
+      id: z.number().int().positive().describe('Post ID'),
+      copy: z.string().nullable().optional().describe('Post text'),
+      title: z.string().nullable().optional().describe('YouTube title'),
+      hashtags: z.string().nullable().optional().describe('Hashtags'),
+      templateId: z.number().int().nullable().optional().describe('Social template ID'),
+      shortLinkId: z.number().int().nullable().optional().describe('Short link ID'),
+      accountId: z.number().int().nullable().optional().describe('Social account ID'),
+      imageUrl: z.string().nullable().optional().describe('Image URL (type IMAGE)'),
+      imageKey: z.string().nullable().optional().describe('Image R2 key (type IMAGE)'),
+      scheduledAt: z.string().nullable().optional().describe('Planned ISO date (does not schedule by itself; use admin_schedule_post)'),
+      status: z.enum(['DRAFT', 'FAILED']).optional().describe('Only DRAFT or FAILED'),
+    },
+    async ({ id, ...data }) => {
+      try { return ok(await cms.updatePost(id, data)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_delete_post',
+    'Admin: permanently delete a post by ID (the post on the social network, if it was published, is NOT removed).',
+    { id: z.number().int().positive().describe('Post ID') },
+    async ({ id }) => {
+      try { await cms.deletePost(id); return ok({ deleted: true, id }); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_schedule_post',
+    'Admin: schedule a post for a FUTURE date-time. LinkedIn (images and videos) and X (images) are published automatically by the cron at that time (safe failures retry up to 3 times; an alert is sent if it finally fails): status becomes SCHEDULED. Instagram, YouTube and Facebook are manual: the date is only a reminder and the post stays DRAFT. Requires text and image (or uploaded video) and a connected account. Never publishes now.',
+    {
+      id: z.number().int().positive().describe('Post ID'),
+      scheduledAt: z.string().describe('ISO date-time in the future (e.g. 2026-11-10T13:00:00Z)'),
+    },
+    async ({ id, scheduledAt }) => {
+      try { return ok(await cms.schedulePost(id, scheduledAt)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_unschedule_post',
+    'Admin: cancel the schedule of a SCHEDULED or FAILED post (or remove a manual network reminder) and return it to DRAFT. Nothing is published.',
+    { id: z.number().int().positive().describe('Post ID') },
+    async ({ id }) => {
+      try { return ok(await cms.unschedulePost(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_publish_post',
+    'Admin: publish an automatic-network post (LinkedIn, X) RIGHT NOW. It cannot be undone from the CMS. Manual networks (Instagram, YouTube, Facebook) are rejected: publish there yourself and use admin_mark_post_published. Returns status PUBLISHED or FAILED (with errorLog). Fails with 409 if already published or being published.',
+    { id: z.number().int().positive().describe('Post ID') },
+    async ({ id }) => {
+      try { return ok(await cms.publishPost(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_mark_post_published',
+    'Admin: mark a post as PUBLISHED after it was published by hand on the network (Instagram, YouTube, Facebook). Touches no network. Optionally record the real publication date and the public URL (http/https).',
+    {
+      id: z.number().int().positive().describe('Post ID'),
+      publishedAt: z.string().optional().describe('ISO date-time it was published (default: now)'),
+      externalUrl: z.string().optional().describe('Public URL of the post on the network'),
+    },
+    async ({ id, ...data }) => {
+      try { return ok(await cms.markPostPublished(id, data)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_unpublish_post',
+    'Admin: set a PUBLISHED post back to DRAFT IN THE CMS ONLY. The post stays live on the network, and publishing it again would duplicate it.',
+    { id: z.number().int().positive().describe('Post ID') },
+    async ({ id }) => {
+      try { return ok(await cms.unpublishPost(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_generate_post_image',
+    'Admin: compose the image of an IMAGE post with its social template. With an articleId it builds the cover from the article; for standalone posts pass a cover payload (title, excerpt, hook...). The post needs a templateId.',
+    {
+      id: z.number().int().positive().describe('Post ID'),
+      title: z.string().optional().describe('Title text (supports **bold** markdown)'),
+      excerpt: z.string().optional().describe('Excerpt/summary text'),
+      hook: z.string().optional().describe('Hook/punchy phrase'),
+      author: z.string().optional().describe('Author name'),
+      genres: z.string().optional().describe('Genres, comma-separated'),
+      species: z.string().optional().describe('Species, comma-separated'),
+      types: z.string().optional().describe('Types, comma-separated'),
+      date: z.string().optional().describe('Publication date string'),
+      readingTime: z.string().optional().describe('Reading time (e.g. "5 min de lectura")'),
+      tags: z.string().optional().describe('Tags, comma-separated'),
+      bgImage: z.string().optional().describe('Background image URL'),
+      siteName: z.string().optional().describe('Site name (default: MacarenoNet)'),
+    },
+    async (args) => {
+      try {
+        const { id, ...payload } = args;
+        const hasPayload = Object.values(payload).some(v => v !== undefined);
+        return ok(await cms.generatePostImage(id, hasPayload ? payload : undefined));
+      }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_generate_post_copy',
+    'Admin: generate AI text for a post from its linked article and the network prompt, and save it in the post.',
+    { id: z.number().int().positive().describe('Post ID') },
+    async ({ id }) => {
+      try { return ok(await cms.generatePostCopy(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_posts_capabilities',
+    'Admin: which networks and post types are published automatically (LinkedIn images and videos, X images) and which are manual (Instagram, YouTube, Facebook).',
+    {},
+    async () => {
+      try { return ok(await cms.getPostsCapabilities()); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_posts_scheduler_status',
+    'Admin: who publishes scheduled content (publishSource: legacy | posts), how many posts are scheduled, due now, retrying, and the next one due.',
+    {},
+    async () => {
+      try { return ok(await cms.getPostsScheduler()); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  // ── Cuentas sociales ──────────────────────────────────────────────────────────
+  // Los tokens y claves NO se cargan por el MCP: se guardan en el admin (Cuentas sociales) para que no pasen por ninguna conversación.
+
+  server.tool(
+    'admin_list_social_accounts',
+    'Admin: list the social accounts (LinkedIn, X, Instagram) with status (CONNECTED, EXPIRED, ERROR, UNCONFIGURED), expiry date, last check and last error. Never returns tokens. Also says whether environment-variable credentials are still used as a fallback.',
+    {},
+    async () => {
+      try { return ok(await cms.listSocialAccounts()); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_test_social_account',
+    'Admin: check a social account connection against its network WITHOUT publishing anything. Updates its status, last check, error and external id. To renew an expired token, do it in the admin panel (Cuentas sociales), then test again here.',
+    { id: z.number().int().positive().describe('Social account ID') },
+    async ({ id }) => {
+      try { return ok(await cms.testSocialAccount(id)); }
+      catch (e) { return err(e); }
+    },
+  );
+
+  server.tool(
+    'admin_set_default_social_account',
+    'Admin: make an account the default of its network (the one used by posts that do not name an account).',
+    { id: z.number().int().positive().describe('Social account ID') },
+    async ({ id }) => {
+      try { return ok(await cms.setDefaultSocialAccount(id)); }
+      catch (e) { return err(e); }
+    },
+  );
 
   server.tool(
     'admin_list_social_prompts',
@@ -966,7 +1203,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_update_reel_post',
-    'Admin: update one network post of a reel: mark it PUBLISHED (with its external URL), back to READY, or edit its text.',
+    '[DEPRECATED, use admin_update_post / admin_mark_post_published] Admin: update one network post of a reel: mark it PUBLISHED (with its external URL), back to READY, or edit its text.',
     {
       id: z.number().int().positive().describe('ReelPost id'),
       status: z.enum(['DRAFT', 'READY', 'PUBLISHED']).optional(),
@@ -1104,7 +1341,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_publish_reel_to_linkedin',
-    'Admin: upload the video of a reel to LinkedIn and publish it RIGHT NOW with the reel post text. Only for the LINKEDIN post of a reel version that has its video uploaded. Cannot be undone from the CMS and is never retried automatically. Instagram is published manually and YouTube is not supported.',
+    '[DEPRECATED, use admin_publish_post] Admin: upload the video of a reel to LinkedIn and publish it RIGHT NOW with the reel post text. Only for the LINKEDIN post of a reel version that has its video uploaded. Cannot be undone from the CMS and is never retried automatically. Instagram is published manually and YouTube is not supported.',
     { postId: z.number().int().positive().describe('ReelPost ID (platform LINKEDIN), from admin_get_reel') },
     async ({ postId }) => {
       try { return ok(await cms.publishReelPostToLinkedIn(postId)); }

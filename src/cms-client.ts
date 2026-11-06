@@ -638,3 +638,85 @@ export function deleteSubscriber(id: number) {
 export function publishReelPostToLinkedIn(id: number) {
   return adminPost<unknown>(`/admin/reels/posts/${id}/publish-linkedin`, {});
 }
+
+// ── Posts unificados (imagen y video) ────────────────────────────────────────
+
+export function listPosts(params: {
+  type?: string; network?: string; format?: string; status?: string; locale?: string; articleId?: number; page?: number; pageSize?: number;
+}) {
+  const p: Record<string, string> = {};
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== '') p[k] = String(v);
+  return adminGet<{ posts: unknown[]; total: number; pageCount: number }>('/admin/posts', p);
+}
+
+export function getPost(id: number) {
+  return adminGet<unknown>(`/admin/posts/${id}`);
+}
+
+export function createPost(data: {
+  type: string; network: string; locale: string; format?: string; copy?: string; title?: string; hashtags?: string;
+  articleId?: number; templateId?: number; reelVersionId?: number; imageUrl?: string; shortLinkId?: number; accountId?: number;
+}) {
+  return adminPost<unknown>('/admin/posts', data);
+}
+
+export function updatePost(id: number, data: {
+  copy?: string | null; title?: string | null; hashtags?: string | null; templateId?: number | null; shortLinkId?: number | null;
+  accountId?: number | null; imageUrl?: string | null; imageKey?: string | null; scheduledAt?: string | null; status?: string;
+}) {
+  return adminPut<unknown>(`/admin/posts/${id}`, data);
+}
+
+export function deletePost(id: number) {
+  return adminDelete(`/admin/posts/${id}`);
+}
+
+export function schedulePost(id: number, scheduledAt: string) {
+  return adminPost<unknown>(`/admin/posts/${id}/schedule`, { scheduledAt });
+}
+
+export function unschedulePost(id: number) {
+  return adminPost<unknown>(`/admin/posts/${id}/unschedule`, {});
+}
+
+export function publishPost(id: number) {
+  return adminPost<unknown>(`/admin/posts/${id}/publish`, {});
+}
+
+export function markPostPublished(id: number, data: { publishedAt?: string; externalUrl?: string }) {
+  return adminPost<unknown>(`/admin/posts/${id}/mark-published`, data);
+}
+
+export function unpublishPost(id: number) {
+  return adminPost<unknown>(`/admin/posts/${id}/unpublish`, {});
+}
+
+export function generatePostImage(id: number, payload?: CoverPayload) {
+  return adminPost<unknown>(`/admin/posts/${id}/generate-image`, payload ?? {});
+}
+
+export function generatePostCopy(id: number) {
+  return adminPost<unknown>(`/admin/posts/${id}/generate-copy`, {});
+}
+
+export function getPostsCapabilities() {
+  return adminGet<unknown>('/admin/posts/capabilities');
+}
+
+export function getPostsScheduler() {
+  return adminGet<unknown>('/admin/posts/scheduler');
+}
+
+// ── Cuentas sociales (solo lectura y pruebas: los tokens se cargan en el admin, nunca por el MCP) ──────────────
+
+export function listSocialAccounts() {
+  return adminGet<unknown>('/admin/social-accounts');
+}
+
+export function testSocialAccount(id: number) {
+  return adminPost<unknown>(`/admin/social-accounts/${id}/test`, {});
+}
+
+export function setDefaultSocialAccount(id: number) {
+  return adminPost<unknown>(`/admin/social-accounts/${id}/default`, {});
+}
