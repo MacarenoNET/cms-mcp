@@ -756,10 +756,10 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_list_posts',
-    'Admin: list posts (an image or a video published on a social network). Filters: type (IMAGE | VIDEO), network (LINKEDIN, TWITTER, INSTAGRAM, YOUTUBE, FACEBOOK, WEB), format, status (DRAFT, SCHEDULED, PUBLISHING, PUBLISHED, FAILED), locale, articleId. Each post has scheduledAt (when it should go out) and publishedAt (when it did).',
+    'Admin: list posts (an image or a video published on a social network). Filters: type (IMAGE | VIDEO), network (LINKEDIN, TWITTER, INSTAGRAM, YOUTUBE, FACEBOOK, TIKTOK, WEB), format, status (DRAFT, SCHEDULED, PUBLISHING, PUBLISHED, FAILED), locale, articleId. Each post has scheduledAt (when it should go out) and publishedAt (when it did).',
     {
       type: z.enum(['IMAGE', 'VIDEO']).optional().describe('IMAGE = social post with an image; VIDEO = reel'),
-      network: z.string().optional().describe('LINKEDIN, TWITTER, INSTAGRAM, YOUTUBE, FACEBOOK, WEB'),
+      network: z.string().optional().describe('LINKEDIN, TWITTER, INSTAGRAM, YOUTUBE, FACEBOOK, TIKTOK, WEB'),
       format: z.string().optional().describe('FEED, SQUARE, PORTRAIT, STORY, REEL, OG'),
       status: z.string().optional().describe('DRAFT, SCHEDULED, PUBLISHING, PUBLISHED, FAILED'),
       locale: z.string().optional().describe('es, pt, en'),
@@ -785,10 +785,10 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_create_post',
-    'Admin: create a post as a DRAFT (nothing is published until it is scheduled or published). type IMAGE needs an image later (admin_generate_post_image or imageUrl); type VIDEO needs reelVersionId (the reel is created with admin_upsert_reel + admin_reel_upload_url). One video post per reel version and network. Instagram, YouTube and Facebook are published manually.',
+    'Admin: create a post as a DRAFT (nothing is published until it is scheduled or published). type IMAGE needs an image later (admin_generate_post_image or imageUrl); type VIDEO needs reelVersionId (the reel is created with admin_upsert_reel + admin_reel_upload_url). One video post per reel version and network. LinkedIn, X, Instagram and TikTok (videos only) are published automatically; YouTube and Facebook are manual.',
     {
       type: z.enum(['IMAGE', 'VIDEO']).describe('IMAGE or VIDEO'),
-      network: z.string().describe('LINKEDIN, TWITTER, INSTAGRAM, YOUTUBE, FACEBOOK, WEB'),
+      network: z.string().describe('LINKEDIN, TWITTER, INSTAGRAM, YOUTUBE, FACEBOOK, TIKTOK, WEB'),
       locale: z.string().describe('es, pt, en (a video post takes the locale of its reel version)'),
       format: z.string().optional().describe('FEED (default for images), SQUARE, PORTRAIT, STORY, REEL (default for videos), OG'),
       copy: z.string().optional().describe('Post text'),
@@ -841,7 +841,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_schedule_post',
-    'Admin: schedule a post for a FUTURE date-time. LinkedIn (images and videos) and X (images) are published automatically by the cron at that time (safe failures retry up to 3 times; an alert is sent if it finally fails): status becomes SCHEDULED. Instagram, YouTube and Facebook are manual: the date is only a reminder and the post stays DRAFT. Requires text and image (or uploaded video) and a connected account. Never publishes now.',
+    'Admin: schedule a post for a FUTURE date-time. LinkedIn (images and videos), X (images), Instagram (images and Reels) and TikTok (videos) are published automatically by the cron at that time (safe failures retry up to 3 times; an alert is sent if it finally fails): status becomes SCHEDULED. YouTube and Facebook are manual: the date is only a reminder and the post stays DRAFT. TikTok posts are private (only the account owner sees them) until TikTok audits the app. Requires text and image (or uploaded video) and a connected account. Never publishes now.',
     {
       id: z.number().int().positive().describe('Post ID'),
       scheduledAt: z.string().describe('ISO date-time in the future (e.g. 2026-11-10T13:00:00Z)'),
@@ -864,7 +864,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_publish_post',
-    'Admin: publish an automatic-network post (LinkedIn, X) RIGHT NOW. It cannot be undone from the CMS. Manual networks (Instagram, YouTube, Facebook) are rejected: publish there yourself and use admin_mark_post_published. Returns status PUBLISHED or FAILED (with errorLog). Fails with 409 if already published or being published.',
+    'Admin: publish an automatic-network post (LinkedIn, X, Instagram, TikTok) RIGHT NOW. It cannot be undone from the CMS. Manual networks (YouTube, Facebook) are rejected: publish there yourself and use admin_mark_post_published. Videos on Instagram and TikTok take minutes to process, so this returns status PUBLISHING at once and finishes in the background: check with admin_get_post (PUBLISHED, or FAILED with errorLog). Otherwise returns status PUBLISHED or FAILED (with errorLog). Fails with 409 if already published or being published.',
     { id: z.number().int().positive().describe('Post ID') },
     async ({ id }) => {
       try { return ok(await cms.publishPost(id)); }
@@ -874,7 +874,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_mark_post_published',
-    'Admin: mark a post as PUBLISHED after it was published by hand on the network (Instagram, YouTube, Facebook). Touches no network. Optionally record the real publication date and the public URL (http/https).',
+    'Admin: mark a post as PUBLISHED after it was published by hand on the network (YouTube, Facebook). Touches no network. Optionally record the real publication date and the public URL (http/https).',
     {
       id: z.number().int().positive().describe('Post ID'),
       publishedAt: z.string().optional().describe('ISO date-time it was published (default: now)'),
@@ -936,7 +936,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_posts_capabilities',
-    'Admin: which networks and post types are published automatically (LinkedIn images and videos, X images) and which are manual (Instagram, YouTube, Facebook).',
+    'Admin: which networks and post types are published automatically (LinkedIn images and videos, X images, Instagram images and Reels, TikTok videos) and which are manual (YouTube, Facebook).',
     {},
     async () => {
       try { return ok(await cms.getPostsCapabilities()); }
@@ -959,7 +959,7 @@ export function createServer(): McpServer {
 
   server.tool(
     'admin_list_social_accounts',
-    'Admin: list the social accounts (LinkedIn, X, Instagram) with status (CONNECTED, EXPIRED, ERROR, UNCONFIGURED), expiry date, last check and last error. Never returns tokens. Also says whether environment-variable credentials are still used as a fallback.',
+    'Admin: list the social accounts (LinkedIn, X, Instagram, TikTok) with status (CONNECTED, EXPIRED, ERROR, UNCONFIGURED), expiry date, last check and last error. Never returns tokens. Also says whether environment-variable credentials are still used as a fallback.',
     {},
     async () => {
       try { return ok(await cms.listSocialAccounts()); }

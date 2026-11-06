@@ -7,6 +7,12 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Changed — 2026-11-06
+
+- Las descripciones de las herramientas de posts reflejan la realidad actual: Instagram (imágenes y Reels) y **TikTok** (videos) se publican solos; solo YouTube y
+  Facebook son manuales. `admin_publish_post` avisa que los videos de Instagram y TikTok responden PUBLISHING y terminan en segundo plano. La red `TIKTOK`
+  se admite en `admin_create_post` y `admin_list_posts`.
+
 ### Added — 2026-11-06
 
 - **17 herramientas de posts y cuentas**: `admin_list_posts`, `admin_get_post`, `admin_create_post`, `admin_update_post`,
